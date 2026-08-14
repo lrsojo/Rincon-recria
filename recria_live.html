@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recría — Rincón de la Laguna</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d1117;--s:#161b27;--b:#21283a;--t:#e6edf3;--m:#7d8590;
+--c23:#f97316;--c24:#a78bfa;--c25:#34d399;--c26:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;
+align-items:center;justify-content:center;gap:16px}
+#loading h2{font-size:15px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#fff}
+.spinner{width:36px;height:36px;border:3px solid var(--b);border-top-color:var(--c26);
+border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadMsg{font-size:12px;color:var(--m)}
+#dash{display:none}
+/* HEADER */
+.hdr{padding:18px 20px 0;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hdr h1{font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.hdr .sub{font-size:11px;color:var(--m);letter-spacing:.06em}
+.hdr .upd{font-size:11px;color:var(--m);margin-left:auto}
+/* CONTROLS */
+.ctrl{padding:14px 20px;display:flex;gap:20px;flex-wrap:wrap;border-bottom:1px solid var(--b);align-items:flex-start}
+.fg{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--m);display:flex;align-items:center;gap:8px}
+.br{display:flex;gap:5px;flex-wrap:wrap}
+.btn{padding:4px 12px;border-radius:16px;border:1px solid var(--b);background:transparent;
+color:var(--m);font-size:11px;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:inherit}
+.btn:hover{border-color:#374151;color:var(--t)}
+.y23.on{color:#f97316;background:rgba(249,115,22,.12);border-color:#f97316}
+.y24.on{color:#a78bfa;background:rgba(167,139,250,.12);border-color:#a78bfa}
+.y25.on{color:#34d399;background:rgba(52,211,153,.12);border-color:#34d399}
+.y26.on{color:#60a5fa;background:rgba(96,165,250,.12);border-color:#60a5fa}
+.btn.sel{color:var(--t);background:rgba(255,255,255,.08);border-color:#4b5563}
+.sep-wrap{display:flex;align-items:center;gap:6px;margin-top:2px}
+.sep-lbl{font-size:10px;color:var(--m)}
+.tog{position:relative;width:32px;height:16px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-sl{position:absolute;inset:0;background:#374151;border-radius:8px;cursor:pointer;transition:.2s}
+.tog-sl:before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;
+background:var(--m);border-radius:50%;transition:.2s}
+.tog input:checked+.tog-sl{background:rgba(96,165,250,.3)}
+.tog input:checked+.tog-sl:before{transform:translateX(16px);background:#60a5fa}
+/* KPI */
+#kpiStrip{display:flex;gap:1px;padding:12px 20px 0;overflow-x:auto}
+.kpi{flex:1;min-width:130px;background:var(--s);border:1px solid var(--b);border-radius:8px;padding:12px 16px;display:flex;flex-direction:column;gap:3px}
+.kpi-val{font-size:26px;font-weight:700;color:#60a5fa;line-height:1}
+.kpi-lbl{font-size:10px;color:var(--m);letter-spacing:.06em;text-transform:uppercase}
+.kpi-sub{font-size:11px;color:#4b5563;margin-top:2px}
+/* CHART */
+.gdp-ctrl{padding:10px 20px 0;display:flex;align-items:center;gap:10px}
+.cc{margin:14px 20px 0;background:var(--s);border:1px solid var(--b);border-radius:8px;padding:16px}
+.ch{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.ct{font-size:13px;font-weight:600}
+.chip{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--m)}
+.cw{position:relative;height:380px}
+.leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--b);align-items:center}
+.li{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--m)}
+.ll{width:22px;height:3px;border-radius:2px}
+/* WARN */
+.warn{margin:0 20px;padding:8px 12px;background:rgba(251,191,36,.08);border-left:2px solid rgba(251,191,36,.4);
+border-radius:0 4px 4px 0;font-size:11px;color:#fbbf24;display:none}
+/* GDP TABLE */
+.gc{margin:14px 20px 20px;background:var(--s);border:1px solid var(--b);border-radius:8px;padding:16px}
+.gt{font-size:12px;font-weight:600;margin-bottom:10px;color:var(--m);text-transform:uppercase;letter-spacing:.06em}
+.gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.gr{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,.02);
+border-radius:5px;border:1px solid var(--b)}
+.gl{font-size:10px;color:var(--m);min-width:110px;flex-shrink:0}
+.gbar{flex:1;height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.gbf{height:100%;border-radius:3px}
+.gv{font-size:12px;font-weight:600;min-width:40px;text-align:right}
+.gd{font-size:10px;color:var(--m)}
+.note{margin:0 20px 20px;font-size:11px;color:var(--m);padding:8px 12px;
+background:rgba(96,165,250,.05);border-left:2px solid rgba(96,165,250,.2);border-radius:0 4px 4px 0}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h2>Rincón de la Laguna</h2>
+  <div id="loadMsg">Cargando datos desde Google Sheets...</div>
+</div>
+
+<div id="dash">
+<div class="hdr">
+  <h1>Rincón de la Laguna</h1>
+  <span class="sub">Recría — Evolución de pesos · 4 campañas</span>
+  <span class="upd" id="upd"></span>
+</div>
+
+<div class="ctrl">
+  <div class="fg">
+    <div class="fl">Campaña
+      <div class="sep-wrap"><label class="tog"><input type="checkbox" id="sepYear" checked onchange="render()"><span class="tog-sl"></span></label><span class="sep-lbl">Separar</span></div>
+    </div>
+    <div class="br" id="brYear">
+      <button class="btn sel" onclick="toggleAll('year',this)">Todos</button>
+      <button class="btn y23 on" data-val="2023" onclick="toggleBtn('year','2023',this)">2023</button>
+      <button class="btn y24 on" data-val="2024" onclick="toggleBtn('year','2024',this)">2024</button>
+      <button class="btn y25 on" data-val="2025" onclick="toggleBtn('year','2025',this)">2025</button>
+      <button class="btn y26 on" data-val="2026" onclick="toggleBtn('year','2026',this)">2026 ★</button>
+    </div>
+  </div>
+  <div class="fg">
+    <div class="fl">Sexo
+      <div class="sep-wrap"><label class="tog"><input type="checkbox" id="sepSexo" onchange="render()"><span class="tog-sl"></span></label><span class="sep-lbl">Separar</span></div>
+    </div>
+    <div class="br" id="brSexo">
+      <button class="btn sel" onclick="toggleAll('sexo',this)">Todos</button>
+      <button class="btn on" data-val="Macho" onclick="toggleBtn('sexo','Macho',this)">Macho</button>
+      <button class="btn on" data-val="Hembra" onclick="toggleBtn('sexo','Hembra',this)">Hembra</button>
+    </div>
+  </div>
+  <div class="fg">
+    <div class="fl">Categoría
+      <div class="sep-wrap"><label class="tog"><input type="checkbox" id="sepR2" onchange="render()"><span class="tog-sl"></span></label><span class="sep-lbl">Separar</span></div>
+    </div>
+    <div class="br" id="brR2">
+      <button class="btn sel" onclick="toggleAll('r2',this)">Todos</button>
+      <button class="btn on" data-val="Cabeza" onclick="toggleBtn('r2','Cabeza',this)">Cabeza</button>
+      <button class="btn on" data-val="Cuerpo" onclick="toggleBtn('r2','Cuerpo',this)">Cuerpo</button>
+      <button class="btn on" data-val="Cola" onclick="toggleBtn('r2','Cola',this)">Cola</button>
+    </div>
+  </div>
+  <div class="fg">
+    <div class="fl">Rodeo 1
+      <div class="sep-wrap"><label class="tog"><input type="checkbox" id="sepR1" onchange="render()"><span class="tog-sl"></span></label><span class="sep-lbl">Separar</span></div>
+    </div>
+    <div class="br" id="brR1"><button class="btn sel" onclick="toggleAll('r1',this)">Todos</button></div>
+  </div>
+</div>
+
+<div id="kpiStrip"></div>
+<div class="gdp-ctrl">
+  <button class="btn" id="btnGdp" onclick="toggleGdp(this)">▐ GDP (barras)</button>
+  <span style="font-size:10px;color:var(--m)">Eje derecho · engorde del período que termina en cada punto</span>
+</div>
+<div class="warn" id="warn"></div>
+<div class="cc">
+  <div class="ch">
+    <span class="ct">Peso vivo promedio (kg)</span>
+    <span class="chip" id="chipLines">— líneas activas</span>
+    <span class="chip">X = fecha calendario · hover para detalle</span>
+  </div>
+  <div class="cw"><canvas id="mainChart"></canvas></div>
+  <div class="leg" id="leg"></div>
+</div>
+<div class="gc"><div class="gt">GDP por período (kg/día)</div><div class="gg" id="gdpGrid"></div></div>
+<div class="note" id="noteBottom">★ 2026 en curso — los datos se actualizan automáticamente desde Google Sheets al abrir esta página.</div>
+</div>
+
+<script>
+// ── SHEET URLS ────────────────────────────────────────────────────────────────
+const SHEETS = {
+  '2023':'https://docs.google.com/spreadsheets/d/e/2PACX-1vScV-vZEvvwh_gI_ztF2vR9hukUTgHIgXEAtK0Ub6CYctO0I-1f8dgP4F0p9IM5JySYhhiJCauqTOtW/pub?gid=1353830390&single=true&output=csv',
+  '2024':'https://docs.google.com/spreadsheets/d/e/2PACX-1vTu1fl5fuFXxbo9Wtkb-a-yOmqojs9P3CUFxClZVed6iZ7dh-LZVLsvNpiCbXkDXB6UeHTEKb-6HTUq/pub?output=csv',
+  '2025':'https://docs.google.com/spreadsheets/d/e/2PACX-1vST2aXurt0cjEBvVkNu37XnRoRbcwc0EGidMBWrK57PzrAhZEKeoznE63TwEENJhsvPBZRN35CpmR1i/pub?gid=1353830390&single=true&output=csv',
+  '2026':'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk2RcOleSKx7VZLyuS3z061ZkHn6eexA1EHvzRTNttFelCjKo9lk_KANBrvpfGp8y_v7q3S3s7TfpA/pub?gid=1353830390&single=true&output=csv',
+};
+
+// ── DATA PROCESSING ───────────────────────────────────────────────────────────
+const R2_NORM = {
+  'Hembras cabeza':'Cabeza','Machos Cabeza':'Cabeza','CABEZA HEMBRAS':'Cabeza','CABEZA MACHOS':'Cabeza',
+  'CAbeza':'Cabeza','cabeza':'Cabeza','Cabeza':'Cabeza','Hembras Cabeza':'Cabeza','Machos cabeza':'Cabeza',
+  'Cuerpo mixto':'Cuerpo','CUERPO MIXTO':'Cuerpo','Cuerpo':'Cuerpo','cuerpo':'Cuerpo',
+  'Cola Mixto':'Cola','COLA':'Cola','Cola':'Cola','Cola 2':'Cola','cola 2':'Cola',
+};
+
+const PESO_FIELDS = [
+  ['DESTETE FECHA 1','DESTETE PESO 1'],['PESADA 1 FECHA','PESADA 1 PESO'],
+  ['PESADA 2 FECHA','PESADA 2 PESO'],['PESADA 3 FECHA','PESADA 3 PESO'],
+  ['PESADA 4 FECHA','PESADA 4 PESO'],['PESADA 5 FECHA','PESADA 5 PESO'],
+];
+
+function toNum(s){ const n=parseFloat((s||'').toString().replace(',','.')); return isNaN(n)?null:n; }
+
+function parseDate(s){
+  if(!s||!s.trim())return null;
+  const p=s.split('/'); if(p.length!==3)return null;
+  const d=+p[0],m=+p[1],y=+p[2]; if(isNaN(d)||isNaN(m)||isNaN(y))return null;
+  return new Date(y<100?2000+y:y,m-1,d);
+}
+
+function dayOfYear(date){
+  const s=new Date(date.getFullYear(),0,0);
+  return Math.floor((date-s)/86400000);
+}
+
+function dayToLabel(day){
+  const d=new Date(2025,0,day);
+  const M=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return `${String(d.getDate()).padStart(2,'0')}-${M[d.getMonth()]}`;
+}
+
+function median(arr){
+  if(!arr.length)return null;
+  const s=[...arr].sort((a,b)=>a-b);
+  const m=Math.floor(s.length/2);
+  return s.length%2?s[m]:Math.round((s[m-1]+s[m])/2);
+}
+
+function computeSeries(rows){
+  const points=[];
+  for(const [df,pf] of PESO_FIELDS){
+    const data=[];
+    for(const row of rows){
+      const d=parseDate(row[df]);
+      const p=toNum(row[pf]);
+      if(d&&p&&p>30&&p<900)data.push({day:dayOfYear(d),peso:p});
+    }
+    if(data.length<5)continue;
+    const avgP=data.reduce((s,x)=>s+x.peso,0)/data.length;
+    const medDay=median(data.map(x=>x.day));
+    points.push({label:dayToLabel(medDay),day:medDay,peso:Math.round(avgP*10)/10,n:data.length});
+  }
+  const bars=[];
+  for(let i=1;i<points.length;i++){
+    const p0=points[i-1],p1=points[i];
+    const days=p1.day-p0.day;
+    if(days>0)bars.push({day:p1.day,gdp:Math.round((p1.peso-p0.peso)/days*1000)/1000,
+      dias:days,label:`${p0.label}→${p1.label}`});
+  }
+  return {points,bars};
+}
+
+function parseCSVLine(line){
+  const r=[];let cur='',inQ=false;
+  for(const c of line){
+    if(c==='"'){inQ=!inQ;}
+    else if(c===','&&!inQ){r.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  r.push(cur.trim());return r;
+}
+
+function buildPrecomp(csvText, year){
+  const lines=csvText.split('\n');
+  if(lines.length<2)return {};
+  const headers=parseCSVLine(lines[0]);
+  const hi={};headers.forEach((h,i)=>hi[h.trim()]=i);
+
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const line=lines[i].trim();if(!line)continue;
+    const parts=parseCSVLine(line);
+    const sexo=parts[hi['SEXO']||0]||'';
+    if(sexo!=='Macho'&&sexo!=='Hembra')continue;
+    const destDate=parseDate(parts[hi['DESTETE FECHA 1']]);
+    if(!destDate||destDate.getFullYear()!==parseInt(year))continue;
+    const destPeso=toNum(parts[hi['DESTETE PESO 1']]);
+    if(!destPeso||destPeso<=60)continue;
+    const row={};
+    headers.forEach((h,idx)=>row[h.trim()]=parts[idx]||'');
+    row._sexo=sexo;
+    row._r2=R2_NORM[row['Rodeo 2']]||null;
+    row._r1=row['Rodeo 1']||'';
+    rows.push(row);
+  }
+
+  const main=rows.filter(r=>r._r2!==null);
+  const result={};
+  result['__ALL__']=computeSeries(main);
+  for(const sx of['Macho','Hembra']){
+    const s=main.filter(r=>r._sexo===sx);
+    if(s.length>10)result[`sexo:${sx}`]=computeSeries(s);
+  }
+  for(const r2 of['Cabeza','Cuerpo','Cola']){
+    const s=main.filter(r=>r._r2===r2);
+    if(s.length>10)result[`r2:${r2}`]=computeSeries(s);
+  }
+  for(const sx of['Macho','Hembra'])for(const r2 of['Cabeza','Cuerpo','Cola']){
+    const s=main.filter(r=>r._sexo===sx&&r._r2===r2);
+    if(s.length>10)result[`sexo:${sx}|r2:${r2}`]=computeSeries(s);
+  }
+  const r1vals=[...new Set(main.map(r=>r._r1).filter(Boolean))];
+  for(const r1 of r1vals){
+    const s=main.filter(r=>r._r1===r1);
+    if(s.length>10)result[`r1:${r1}`]=computeSeries(s);
+  }
+  return{precomp:result,r1vals};
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let PRECOMP={}, R1_BY_YEAR={};
+const YR_COLORS={'2023':'#f97316','2024':'#a78bfa','2025':'#34d399','2026':'#60a5fa'};
+const PALETTE=['#60a5fa','#f97316','#34d399','#a78bfa','#fb7185','#fbbf24'];
+const MONTHS=[{d:1,l:'Ene'},{d:32,l:'Feb'},{d:60,l:'Mar'},{d:91,l:'Abr'},{d:121,l:'May'},
+  {d:152,l:'Jun'},{d:182,l:'Jul'},{d:213,l:'Ago'},{d:244,l:'Sep'},{d:274,l:'Oct'}];
+const MAX_LINES=5;
+let showGdp=false;
+
+function hexAlpha(hex,a){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+const F={
+  year:{sel:new Set(['2023','2024','2025','2026']),all:['2023','2024','2025','2026']},
+  sexo:{sel:new Set(['Macho','Hembra']),all:['Macho','Hembra']},
+  r2:{sel:new Set(['Cabeza','Cuerpo','Cola']),all:['Cabeza','Cuerpo','Cola']},
+  r1:{sel:new Set(),all:[]},
+};
+
+function isSep(dim){return document.getElementById('sep'+dim.charAt(0).toUpperCase()+dim.slice(1))?.checked||false;}
+
+function buildKey(sx,r1,r2){
+  const p=[];
+  if(sx)p.push('sexo:'+sx);
+  if(r1)p.push('r1:'+r1);
+  if(r2)p.push('r2:'+r2);
+  if(!p.length)return'__ALL__';
+  if(r1&&(sx||r2))return'r1:'+r1; // unsupported combo, fallback
+  return p.join('|');
+}
+
+function getLines(){
+  const lines=[],warn=[];let ci=0;
+  const yearDim=[...F.year.sel];
+  const sexoDim=isSep('Sexo')?[...F.sexo.sel]:[null];
+  const r2Dim=isSep('R2')?[...F.r2.sel]:[null];
+  const r1Dim=isSep('R1')&&F.r1.sel.size>0?[...F.r1.sel]:[null];
+  const cSexo=!isSep('Sexo')&&F.sexo.sel.size===1?[...F.sexo.sel][0]:null;
+  const cR2=!isSep('R2')&&F.r2.sel.size===1?[...F.r2.sel][0]:null;
+  const cR1=!isSep('R1')&&F.r1.sel.size===1?[...F.r1.sel][0]:null;
+
+  for(const yr of yearDim){
+    for(const sx of sexoDim){
+      for(const r2 of r2Dim){
+        for(const r1 of r1Dim){
+          const useSx=sx||cSexo,useR2=r2||cR2,useR1=r1||cR1;
+          const key=buildKey(useSx,useR1,useR2);
+          const data=PRECOMP[yr]?.[key];
+          if(!data||!data.points.length){if(useR1&&(useSx||useR2))warn.push(`${yr} (combinación sin precomputo)`);continue;}
+          const parts=[];
+          if(yearDim.length>1||isSep('Year'))parts.push(yr);
+          if(sx)parts.push(sx);else if(cSexo)parts.push(cSexo);
+          if(r1)parts.push(r1);else if(cR1)parts.push(cR1);
+          if(r2)parts.push(r2);else if(cR2)parts.push(cR2);
+          const label=parts.join(' · ')||yr;
+          const onlyYearSplit=!isSep('Sexo')&&!isSep('R2')&&!isSep('R1');
+          const color=onlyYearSplit?YR_COLORS[yr]:PALETTE[ci%PALETTE.length];ci++;
+          lines.push({label,year:yr,color,data});
+          if(lines.length>=MAX_LINES)break;
+        }if(lines.length>=MAX_LINES)break;
+      }if(lines.length>=MAX_LINES)break;
+    }if(lines.length>=MAX_LINES)break;
+  }
+  const w=document.getElementById('warn');
+  if(warn.length){w.style.display='block';w.textContent='Sin datos: '+warn.join(', ');}
+  else w.style.display='none';
+  return lines;
+}
+
+function toggleGdp(btn){
+  showGdp=!showGdp;btn.classList.toggle('sel',showGdp);
+  btn.style.color=showGdp?'#34d399':'';btn.style.borderColor=showGdp?'#34d399':'';render();
+}
+
+function buildDatasets(lines){
+  const ds=[];const nL=lines.length;
+  if(showGdp){
+    lines.forEach((line,li)=>{
+      const pts=line.data.points;
+      const offset=nL>1?(li-(nL-1)/2)*3:0;
+      const bdata=[];
+      for(let i=1;i<pts.length;i++){
+        const p0=pts[i-1],p1=pts[i];const days=p1.day-p0.day;
+        const gdp=days>0?(p1.peso-p0.peso)/days:0;
+        bdata.push({x:p1.day+offset,y:gdp,meta:{label:`${p0.label}→${p1.label}`,dias:days,gdp,linelabel:line.label}});
+      }
+      ds.push({type:'bar',label:`GDP ${line.label}`,data:bdata,
+        backgroundColor:hexAlpha(line.color,.5),borderColor:line.color,borderWidth:1,
+        borderRadius:3,barThickness:Math.max(8,28-nL*4),yAxisID:'y2',order:10,_isGdp:true,_line:line});
+    });
+  }
+  lines.forEach(line=>{
+    ds.push({type:'line',label:line.label,
+      data:line.data.points.map(p=>({x:p.day,y:p.peso,meta:p})),
+      borderColor:line.color,backgroundColor:hexAlpha(line.color,.06),
+      borderWidth:line.year==='2026'?2.5:2,pointRadius:5,pointHoverRadius:8,
+      pointBackgroundColor:line.color,pointBorderColor:'#0d1117',pointBorderWidth:2,
+      tension:.25,fill:false,yAxisID:'y',order:1,_line:line});
+  });
+  return ds;
+}
+
+function getYBounds(lines){
+  let mn=9999,mx=0;
+  lines.forEach(l=>l.data.points.forEach(p=>{mn=Math.min(mn,p.peso);mx=Math.max(mx,p.peso)}));
+  if(mn===9999)return[100,400];
+  return[Math.floor((mn-30)/20)*20,Math.ceil((mx+40)/20)*20];
+}
+
+let chart=null;
+function initChart(lines){
+  const ctx=document.getElementById('mainChart').getContext('2d');
+  const[yMin,yMax]=getYBounds(lines);
+  chart=new Chart(ctx,{type:'bar',data:{datasets:buildDatasets(lines)},options:{
+    responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1f2937',borderColor:'#374151',
+      borderWidth:1,titleColor:'#f9fafb',bodyColor:'#d1d5db',padding:12,
+      filter(item){return!item.dataset._isGdp;},
+      callbacks:{
+        title(items){const f=items.find(i=>i.raw?.meta?.label);if(f)return f.raw.meta.label;
+          const d=items[0]?.parsed?.x;const m=[...MONTHS].reverse().find(m=>d>=m.d);return m?m.l:`Día ${d}`;},
+        label(item){const meta=item.raw?.meta;const n=meta?.n?` · n=${meta.n.toLocaleString()}`:'';
+          return`  ${item.dataset.label}: ${item.parsed.y.toFixed(1)} kg${n}`;}
+      }}},
+    scales:{
+      x:{type:'linear',min:40,max:300,grid:{color:'rgba(255,255,255,0.04)'},border:{color:'#21283a'},
+        ticks:{color:'#6b7280',font:{size:11},maxRotation:0,
+          callback(v){const m=MONTHS.find(m=>m.d===v);return m?m.l:''}},
+        afterBuildTicks(ax){ax.ticks=MONTHS.filter(m=>m.d>=40&&m.d<=300).map(m=>({value:m.d}))}},
+      y:{position:'left',min:yMin,max:yMax,grid:{color:'rgba(255,255,255,0.05)'},border:{color:'#21283a'},
+        ticks:{color:'#6b7280',font:{size:11},callback:v=>v+' kg'}},
+      y2:{position:'right',min:0,max:1.8,display:showGdp,grid:{display:false},border:{color:'#21283a'},
+        ticks:{color:'#4b5563',font:{size:10},stepSize:.3,callback:v=>v.toFixed(1)+' kg/d'}}
+    }
+  }});
+}
+
+function updateChart(lines){
+  const[yMin,yMax]=getYBounds(lines);
+  chart.data.datasets=buildDatasets(lines);
+  chart.options.scales.y.min=yMin;chart.options.scales.y.max=yMax;
+  chart.options.scales.y2.display=showGdp;chart.update('active');
+}
+
+function renderLegend(lines){
+  const el=document.getElementById('leg');
+  el.innerHTML=lines.map(l=>`<div class="li"><div class="ll" style="background:${l.color}"></div><span>${l.label}</span></div>`).join('');
+  document.getElementById('chipLines').textContent=`${lines.length} línea${lines.length!==1?'s':''} activa${lines.length!==1?'s':''}`;
+}
+
+function renderGdp(lines){
+  const grid=document.getElementById('gdpGrid');const maxG=1.5;grid.innerHTML='';
+  lines.forEach(line=>{
+    line.data.bars.forEach(b=>{
+      const pct=Math.max(0,Math.min(100,(b.gdp/maxG)*100));
+      const col=b.gdp<0.2?'#ef4444':b.gdp<0.5?'#fbbf24':'#34d399';
+      grid.innerHTML+=`<div class="gr">
+        <span class="gl" style="color:${line.color}">${line.label.split(' · ')[0]} ${b.label}</span>
+        <div class="gbar"><div class="gbf" style="width:${pct}%;background:${col}"></div></div>
+        <span class="gv" style="color:${col}">${b.gdp>=0?b.gdp.toFixed(3):'—'}</span>
+        <span class="gd">${b.dias}d</span></div>`;
+    });
+  });
+}
+
+function get2026Key(){
+  const cSexo=!isSep('Sexo')&&F.sexo.sel.size===1?[...F.sexo.sel][0]:null;
+  const cR2=!isSep('R2')&&F.r2.sel.size===1?[...F.r2.sel][0]:null;
+  return buildKey(cSexo,null,cR2);
+}
+
+function renderKpi(){
+  const strip=document.getElementById('kpiStrip');
+  const key=get2026Key();
+  const d=PRECOMP['2026']?.[key]||PRECOMP['2026']?.['__ALL__'];
+  if(!d||!d.points.length){strip.innerHTML='';return;}
+  const pts=d.points,last=pts[pts.length-1],first=pts[0];
+  const totalDays=last.day-first.day;
+  const gdpAcum=totalDays>0?(last.peso-first.peso)/totalDays:0;
+  const lastBar=d.bars[d.bars.length-1];
+  const gdpUlt=lastBar?lastBar.gdp:null;
+  const cSexo=!isSep('Sexo')&&F.sexo.sel.size===1?[...F.sexo.sel][0]:null;
+  const cR2=!isSep('R2')&&F.r2.sel.size===1?[...F.r2.sel][0]:null;
+  const ctx=[cSexo,cR2].filter(Boolean).join(' · ')||'Todos';
+  strip.innerHTML=`
+    <div class="kpi"><span class="kpi-lbl">Último peso — 2026</span>
+      <span class="kpi-val">${last.peso.toFixed(0)} <span style="font-size:14px;font-weight:400">kg</span></span>
+      <span class="kpi-sub">${last.label} · ${ctx}</span></div>
+    <div class="kpi"><span class="kpi-lbl">Animales</span>
+      <span class="kpi-val">${last.n.toLocaleString()}</span>
+      <span class="kpi-sub">con dato en ${last.label}</span></div>
+    <div class="kpi"><span class="kpi-lbl">Último GDP registrado</span>
+      <span class="kpi-val" style="color:${gdpUlt>=.5?'#34d399':gdpUlt>=.2?'#fbbf24':'#ef4444'}">${gdpUlt!=null?gdpUlt.toFixed(3):'—'} <span style="font-size:14px;font-weight:400">kg/d</span></span>
+      <span class="kpi-sub">${lastBar?lastBar.label:''} (${lastBar?.dias||'?'} días)</span></div>
+    <div class="kpi"><span class="kpi-lbl">GDP acumulado</span>
+      <span class="kpi-val" style="color:#a78bfa">${gdpAcum.toFixed(3)} <span style="font-size:14px;font-weight:400">kg/d</span></span>
+      <span class="kpi-sub">${first.label} → ${last.label} (${totalDays} días)</span></div>`;
+}
+
+function updateR1Buttons(){
+  const selYears=[...F.year.sel];
+  const r1s=new Set();selYears.forEach(yr=>(R1_BY_YEAR[yr]||[]).forEach(r=>r1s.add(r)));
+  F.r1.all=[...r1s];
+  F.r1.sel.forEach(v=>{if(!r1s.has(v))F.r1.sel.delete(v);});
+  const br=document.getElementById('brR1');
+  const isAll=F.r1.sel.size===0;
+  br.innerHTML=`<button class="btn ${isAll?'sel':''}" onclick="toggleAll('r1',this)">Todos</button>`;
+  [...r1s].forEach(r=>{
+    const on=F.r1.sel.has(r);
+    br.innerHTML+=`<button class="btn ${on?'on':''}" data-val="${r}" onclick="toggleBtn('r1','${r}',this)">${r}</button>`;
+  });
+}
+
+function toggleAll(dim,btn){
+  F[dim].sel=new Set(F[dim].all);
+  document.querySelectorAll(`#br${dim.charAt(0).toUpperCase()+dim.slice(1)} .btn`).forEach(b=>{
+    b.classList.toggle('sel',b.getAttribute('onclick')?.includes('toggleAll'));
+    if(!b.getAttribute('onclick')?.includes('toggleAll'))b.classList.add('on');
+  });
+  if(dim==='year')updateR1Buttons();render();
+}
+
+function toggleBtn(dim,val,btn){
+  if(F[dim].sel.has(val)){if(F[dim].sel.size>1){F[dim].sel.delete(val);btn.classList.remove('on');}}
+  else{F[dim].sel.add(val);btn.classList.add('on');}
+  const allBtn=document.querySelector(`#br${dim.charAt(0).toUpperCase()+dim.slice(1)} .btn[onclick*="toggleAll"]`);
+  if(allBtn)allBtn.classList.toggle('sel',F[dim].all.every(v=>F[dim].sel.has(v)));
+  if(dim==='year')updateR1Buttons();render();
+}
+
+function render(){
+  const lines=getLines();
+  if(!chart)initChart(lines);else updateChart(lines);
+  renderLegend(lines);renderGdp(lines);renderKpi();
+}
+
+// ── INIT: FETCH & PROCESS ─────────────────────────────────────────────────────
+async function loadData(){
+  const msg=document.getElementById('loadMsg');
+  const years=['2023','2024','2025','2026'];
+  let loaded=0;
+  await Promise.all(years.map(async yr=>{
+    try{
+      msg.textContent=`Cargando ${yr}...`;
+      const res=await fetch(SHEETS[yr]);
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+      const text=await res.text();
+      msg.textContent=`Procesando ${yr}...`;
+      const{precomp,r1vals}=buildPrecomp(text,yr);
+      PRECOMP[yr]=precomp;
+      R1_BY_YEAR[yr]=r1vals;
+      loaded++;
+      msg.textContent=`${loaded}/4 campañas cargadas...`;
+    }catch(e){console.error(`Error ${yr}:`,e);PRECOMP[yr]={};}
+  }));
+
+  // Update timestamp
+  document.getElementById('upd').textContent=`Actualizado: ${new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}`;
+
+  // Show dashboard
+  document.getElementById('loading').style.display='none';
+  document.getElementById('dash').style.display='block';
+  updateR1Buttons();
+  render();
+}
+
+loadData();
+</script>
+</body>
+</html>
