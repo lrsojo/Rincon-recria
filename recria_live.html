@@ -534,16 +534,36 @@ async function loadData(){
   await Promise.all(years.map(async yr=>{
     try{
       msg.textContent=`Cargando ${yr}...`;
-      const res=await fetch(SHEETS[yr]);
+      const PROXIES=[
+        url=>url, // directo primero
+        url=>'https://api.allorigins.win/raw?url='+encodeURIComponent(url),
+        url=>'https://corsproxy.io/?'+encodeURIComponent(url),
+      ];
+      let text=null;
+      for(const proxy of PROXIES){
+        try{
+          const controller=new AbortController();
+          const timer=setTimeout(()=>controller.abort(),10000);
+          const res=await fetch(proxy(SHEETS[yr]),{signal:controller.signal});
+          clearTimeout(timer);
+          if(!res.ok)continue;
+          const t=await res.text();
+          if(t.includes('SEXO')&&t.includes('DESTETE')){text=t;break;}
+        }catch(e){continue;}
+      }
+      if(!text)throw new Error('Sin datos');
       if(!res.ok)throw new Error(`HTTP ${res.status}`);
-      const text=await res.text();
       msg.textContent=`Procesando ${yr}...`;
       const{precomp,r1vals}=buildPrecomp(text,yr);
       PRECOMP[yr]=precomp;
       R1_BY_YEAR[yr]=r1vals;
       loaded++;
       msg.textContent=`${loaded}/4 campañas cargadas...`;
-    }catch(e){console.error(`Error ${yr}:`,e);PRECOMP[yr]={};}
+    }catch(e){
+      console.error(`Error ${yr}:`,e);
+      PRECOMP[yr]={};
+      msg.textContent=`Error cargando ${yr} — continuando...`;
+    }
   }));
 
   // Update timestamp
