@@ -1,2 +1,585 @@
-# Rincon-recria
-Rincon - Tablero de control ganadero
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recría — Rincón de la Laguna</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0d1117;--s:#161b27;--b:#21283a;--t:#e6edf3;--m:#7d8590;
+--c1:#60a5fa;--c2:#f97316;--c3:#34d399;--c4:#a78bfa;--c5:#fb7185;--c6:#fbbf24}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+/* HEADER */
+.hdr{padding:18px 20px 0;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.hdr h1{font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.hdr span{font-size:11px;color:var(--m);letter-spacing:.06em}
+/* CONTROLS */
+.ctrl{padding:14px 20px;display:flex;gap:20px;flex-wrap:wrap;border-bottom:1px solid var(--b);align-items:flex-start}
+.fg{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fl{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--m);display:flex;align-items:center;gap:8px}
+.br{display:flex;gap:5px;flex-wrap:wrap}
+.btn{padding:4px 12px;border-radius:16px;border:1px solid var(--b);background:transparent;color:var(--m);
+font-size:11px;cursor:pointer;transition:all .12s;white-space:nowrap;font-family:inherit}
+.btn:hover{border-color:#374151;color:var(--t)}
+.btn.on{border-color:currentColor}
+/* year colors */
+.y23.on{color:#f97316;background:rgba(249,115,22,.12)}
+.y24.on{color:#a78bfa;background:rgba(167,139,250,.12)}
+.y25.on{color:#34d399;background:rgba(52,211,153,.12)}
+.y26.on{color:#60a5fa;background:rgba(96,165,250,.12)}
+.btn.sel{color:var(--t);background:rgba(255,255,255,.08);border-color:#4b5563}
+/* separar toggle */
+.sep-wrap{display:flex;align-items:center;gap:6px;margin-top:2px}
+.sep-lbl{font-size:10px;color:var(--m)}
+.tog{position:relative;width:32px;height:16px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0;position:absolute}
+.tog-sl{position:absolute;inset:0;background:#374151;border-radius:8px;cursor:pointer;transition:.2s}
+.tog-sl:before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;
+background:var(--m);border-radius:50%;transition:.2s}
+.tog input:checked+.tog-sl{background:rgba(96,165,250,.3)}
+.tog input:checked+.tog-sl:before{transform:translateX(16px);background:#60a5fa}
+/* CHART CARD */
+.cc{margin:14px 20px 0;background:var(--s);border:1px solid var(--b);border-radius:8px;padding:16px}
+.ch{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.ct{font-size:13px;font-weight:600}
+.chip{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.05);color:var(--m)}
+.cw{position:relative;height:380px}
+/* LEGEND */
+.leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--b);align-items:center}
+.li{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--m)}
+.ll{width:22px;height:3px;border-radius:2px}
+/* WARNING */
+.warn{margin:0 20px;padding:8px 12px;background:rgba(251,191,36,.08);border-left:2px solid rgba(251,191,36,.4);
+border-radius:0 4px 4px 0;font-size:11px;color:#fbbf24;display:none}
+/* KPI STRIP */
+.kpi{flex:1;min-width:130px;background:var(--s);border:1px solid var(--b);border-radius:8px;
+padding:12px 16px;display:flex;flex-direction:column;gap:3px}
+.kpi-val{font-size:26px;font-weight:700;color:#60a5fa;line-height:1}
+.kpi-lbl{font-size:10px;color:var(--m);letter-spacing:.06em;text-transform:uppercase}
+.kpi-sub{font-size:11px;color:#4b5563;margin-top:2px}
+/* GDP TABLE */
+.gc{margin:14px 20px 20px;background:var(--s);border:1px solid var(--b);border-radius:8px;padding:16px}
+.gt{font-size:12px;font-weight:600;margin-bottom:10px;color:var(--m);text-transform:uppercase;letter-spacing:.06em}
+.gg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+.gr{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,.02);
+border-radius:5px;border:1px solid var(--b)}
+.gl{font-size:10px;color:var(--m);min-width:110px;flex-shrink:0}
+.gbar{flex:1;height:5px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
+.gbf{height:100%;border-radius:3px}
+.gv{font-size:12px;font-weight:600;min-width:40px;text-align:right}
+.gd{font-size:10px;color:var(--m)}
+/* NOTE */
+.note{margin:0 20px 20px;font-size:11px;color:var(--m);padding:8px 12px;
+background:rgba(96,165,250,.05);border-left:2px solid rgba(96,165,250,.2);border-radius:0 4px 4px 0}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>Rincón de la Laguna</h1>
+  <span>Recría — Evolución de pesos · 4 campañas</span>
+</div>
+
+<div class="ctrl">
+
+  <!-- CAMPAÑA -->
+  <div class="fg">
+    <div class="fl">Campaña
+      <div class="sep-wrap">
+        <label class="tog"><input type="checkbox" id="sepYear" checked onchange="render()">
+        <span class="tog-sl"></span></label>
+        <span class="sep-lbl">Separar</span>
+      </div>
+    </div>
+    <div class="br" id="brYear">
+      <button class="btn sel" data-dim="year" data-val="__ALL__" onclick="toggleAll('year',this)">Todos</button>
+      <button class="btn y23 on" data-dim="year" data-val="2023" onclick="toggleBtn('year','2023',this)">2023</button>
+      <button class="btn y24 on" data-dim="year" data-val="2024" onclick="toggleBtn('year','2024',this)">2024</button>
+      <button class="btn y25 on" data-dim="year" data-val="2025" onclick="toggleBtn('year','2025',this)">2025</button>
+      <button class="btn y26 on" data-dim="year" data-val="2026" onclick="toggleBtn('year','2026',this)">2026 ★</button>
+    </div>
+  </div>
+
+  <!-- SEXO -->
+  <div class="fg">
+    <div class="fl">Sexo
+      <div class="sep-wrap">
+        <label class="tog"><input type="checkbox" id="sepSexo" onchange="render()">
+        <span class="tog-sl"></span></label>
+        <span class="sep-lbl">Separar</span>
+      </div>
+    </div>
+    <div class="br" id="brSexo">
+      <button class="btn sel" data-dim="sexo" data-val="__ALL__" onclick="toggleAll('sexo',this)">Todos</button>
+      <button class="btn on" data-dim="sexo" data-val="Macho" onclick="toggleBtn('sexo','Macho',this)">Macho</button>
+      <button class="btn on" data-dim="sexo" data-val="Hembra" onclick="toggleBtn('sexo','Hembra',this)">Hembra</button>
+    </div>
+  </div>
+
+  <!-- CATEGORIA (Rodeo 2) -->
+  <div class="fg">
+    <div class="fl">Categoría
+      <div class="sep-wrap">
+        <label class="tog"><input type="checkbox" id="sepR2" onchange="render()">
+        <span class="tog-sl"></span></label>
+        <span class="sep-lbl">Separar</span>
+      </div>
+    </div>
+    <div class="br" id="brR2">
+      <button class="btn sel" data-dim="r2" data-val="__ALL__" onclick="toggleAll('r2',this)">Todos</button>
+      <button class="btn on" data-dim="r2" data-val="Cabeza" onclick="toggleBtn('r2','Cabeza',this)">Cabeza</button>
+      <button class="btn on" data-dim="r2" data-val="Cuerpo" onclick="toggleBtn('r2','Cuerpo',this)">Cuerpo</button>
+      <button class="btn on" data-dim="r2" data-val="Cola" onclick="toggleBtn('r2','Cola',this)">Cola</button>
+    </div>
+  </div>
+
+  <!-- RODEO 1 -->
+  <div class="fg">
+    <div class="fl">Rodeo 1
+      <div class="sep-wrap">
+        <label class="tog"><input type="checkbox" id="sepR1" onchange="render()">
+        <span class="tog-sl"></span></label>
+        <span class="sep-lbl">Separar</span>
+      </div>
+    </div>
+    <div class="br" id="brR1">
+      <button class="btn sel" data-dim="r1" data-val="__ALL__" onclick="toggleAll('r1',this)">Todos</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="warn" id="warn"></div>
+
+<div id="kpiStrip" style="display:flex;gap:1px;padding:12px 20px 0;overflow-x:auto"></div>
+
+<div style="padding:10px 20px 0;display:flex;align-items:center;gap:10px">
+  <button class="btn" id="btnGdp" onclick="toggleGdp(this)">▐ GDP (barras)</button>
+  <span style="font-size:10px;color:var(--m)">Eje derecho · engorde del período que termina en cada punto</span>
+</div>
+
+<div class="cc">
+  <div class="ch">
+    <span class="ct">Peso vivo promedio (kg)</span>
+    <span class="chip" id="chipLines">— líneas activas</span>
+    <span class="chip">X = fecha calendario · hover para detalle</span>
+  </div>
+  <div class="cw"><canvas id="mainChart"></canvas></div>
+  <div class="leg" id="leg"></div>
+</div>
+
+<div class="gc">
+  <div class="gt">GDP por período (kg/día)</div>
+  <div class="gg" id="gdpGrid"></div>
+</div>
+
+<div class="note" id="noteBottom">★ 2026 en curso — datos hasta P3 (01-Jul). GDP calculado sobre pesadas disponibles.</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+// ##DATA_START##
+const PRECOMP = {"2026": {"__ALL__": {"points": [{"label": "05-Mar", "day": 64, "peso": 180.2, "n": 1078}, {"label": "09-Apr", "day": 99, "peso": 184.5, "n": 1066}, {"label": "23-May", "day": 143, "peso": 206.1, "n": 1039}, {"label": "01-Jul", "day": 182, "peso": 236.2, "n": 1044}, {"label": "31-Jul", "day": 212, "peso": 230.4, "n": 304}], "bars": [{"day": 99, "gdp": 0.123, "dias": 35, "label": "05-Mar\u219209-Apr"}, {"day": 143, "gdp": 0.491, "dias": 44, "label": "09-Apr\u219223-May"}, {"day": 182, "gdp": 0.772, "dias": 39, "label": "23-May\u219201-Jul"}, {"day": 212, "gdp": -0.193, "dias": 30, "label": "01-Jul\u219231-Jul"}]}, "sexo:Macho": {"points": [{"label": "05-Mar", "day": 64, "peso": 186.4, "n": 576}, {"label": "09-Apr", "day": 99, "peso": 191.2, "n": 568}, {"label": "21-May", "day": 141, "peso": 212.1, "n": 552}, {"label": "01-Jul", "day": 182, "peso": 240.6, "n": 554}, {"label": "31-Jul", "day": 212, "peso": 235.7, "n": 134}], "bars": [{"day": 99, "gdp": 0.137, "dias": 35, "label": "05-Mar\u219209-Apr"}, {"day": 141, "gdp": 0.498, "dias": 42, "label": "09-Apr\u219221-May"}, {"day": 182, "gdp": 0.695, "dias": 41, "label": "21-May\u219201-Jul"}, {"day": 212, "gdp": -0.163, "dias": 30, "label": "01-Jul\u219231-Jul"}]}, "sexo:Hembra": {"points": [{"label": "05-Mar", "day": 64, "peso": 173.1, "n": 502}, {"label": "09-Apr", "day": 99, "peso": 176.8, "n": 498}, {"label": "27-May", "day": 147, "peso": 199.2, "n": 487}, {"label": "02-Jul", "day": 183, "peso": 231.1, "n": 490}, {"label": "31-Jul", "day": 212, "peso": 226.1, "n": 170}], "bars": [{"day": 99, "gdp": 0.106, "dias": 35, "label": "05-Mar\u219209-Apr"}, {"day": 147, "gdp": 0.467, "dias": 48, "label": "09-Apr\u219227-May"}, {"day": 183, "gdp": 0.886, "dias": 36, "label": "27-May\u219202-Jul"}, {"day": 212, "gdp": -0.172, "dias": 29, "label": "02-Jul\u219231-Jul"}]}, "r2:Cabeza": {"points": [{"label": "05-Mar", "day": 64, "peso": 212.0, "n": 433}, {"label": "08-Apr", "day": 98, "peso": 215.8, "n": 432}, {"label": "21-May", "day": 141, "peso": 237.4, "n": 432}, {"label": "01-Jul", "day": 182, "peso": 263.0, "n": 430}], "bars": [{"day": 98, "gdp": 0.112, "dias": 34, "label": "05-Mar\u219208-Apr"}, {"day": 141, "gdp": 0.502, "dias": 43, "label": "08-Apr\u219221-May"}, {"day": 182, "gdp": 0.624, "dias": 41, "label": "21-May\u219201-Jul"}]}, "r2:Cuerpo": {"points": [{"label": "04-Mar", "day": 63, "peso": 178.6, "n": 312}, {"label": "09-Apr", "day": 99, "peso": 182.4, "n": 310}, {"label": "02-Jun", "day": 153, "peso": 207.6, "n": 301}, {"label": "02-Jul", "day": 183, "peso": 235.5, "n": 307}], "bars": [{"day": 99, "gdp": 0.106, "dias": 36, "label": "04-Mar\u219209-Apr"}, {"day": 153, "gdp": 0.467, "dias": 54, "label": "09-Apr\u219202-Jun"}, {"day": 183, "gdp": 0.93, "dias": 30, "label": "02-Jun\u219202-Jul"}]}, "r2:Cola": {"points": [{"label": "26-Feb", "day": 57, "peso": 140.3, "n": 333}, {"label": "09-Apr", "day": 99, "peso": 144.8, "n": 324}, {"label": "27-May", "day": 147, "peso": 160.3, "n": 306}, {"label": "30-Jun", "day": 181, "peso": 199.3, "n": 307}, {"label": "31-Jul", "day": 212, "peso": 230.4, "n": 304}], "bars": [{"day": 99, "gdp": 0.107, "dias": 42, "label": "26-Feb\u219209-Apr"}, {"day": 147, "gdp": 0.323, "dias": 48, "label": "09-Apr\u219227-May"}, {"day": 181, "gdp": 1.147, "dias": 34, "label": "27-May\u219230-Jun"}, {"day": 212, "gdp": 1.003, "dias": 31, "label": "30-Jun\u219231-Jul"}]}, "sexo:Macho|r2:Cabeza": {"points": [{"label": "05-Mar", "day": 64, "peso": 213.9, "n": 281}, {"label": "09-Apr", "day": 99, "peso": 217.8, "n": 280}, {"label": "21-May", "day": 141, "peso": 236.6, "n": 280}, {"label": "01-Jul", "day": 182, "peso": 258.7, "n": 279}], "bars": [{"day": 99, "gdp": 0.111, "dias": 35, "label": "05-Mar\u219209-Apr"}, {"day": 141, "gdp": 0.448, "dias": 42, "label": "09-Apr\u219221-May"}, {"day": 182, "gdp": 0.539, "dias": 41, "label": "21-May\u219201-Jul"}]}, "sexo:Macho|r2:Cuerpo": {"points": [{"label": "04-Mar", "day": 63, "peso": 178.3, "n": 144}, {"label": "09-Apr", "day": 99, "peso": 182.9, "n": 143}, {"label": "02-Jun", "day": 153, "peso": 209.2, "n": 139}, {"label": "02-Jul", "day": 183, "peso": 238.7, "n": 141}], "bars": [{"day": 99, "gdp": 0.128, "dias": 36, "label": "04-Mar\u219209-Apr"}, {"day": 153, "gdp": 0.487, "dias": 54, "label": "09-Apr\u219202-Jun"}, {"day": 183, "gdp": 0.983, "dias": 30, "label": "02-Jun\u219202-Jul"}]}, "sexo:Macho|r2:Cola": {"points": [{"label": "26-Feb", "day": 57, "peso": 143.0, "n": 151}, {"label": "09-Apr", "day": 99, "peso": 148.3, "n": 145}, {"label": "27-May", "day": 147, "peso": 163.7, "n": 133}, {"label": "30-Jun", "day": 181, "peso": 204.9, "n": 134}, {"label": "31-Jul", "day": 212, "peso": 235.7, "n": 134}], "bars": [{"day": 99, "gdp": 0.126, "dias": 42, "label": "26-Feb\u219209-Apr"}, {"day": 147, "gdp": 0.321, "dias": 48, "label": "09-Apr\u219227-May"}, {"day": 181, "gdp": 1.212, "dias": 34, "label": "27-May\u219230-Jun"}, {"day": 212, "gdp": 0.994, "dias": 31, "label": "30-Jun\u219231-Jul"}]}, "sexo:Hembra|r2:Cabeza": {"points": [{"label": "05-Mar", "day": 64, "peso": 208.5, "n": 152}, {"label": "08-Apr", "day": 98, "peso": 212.2, "n": 152}, {"label": "20-May", "day": 140, "peso": 238.9, "n": 152}, {"label": "03-Jul", "day": 184, "peso": 270.8, "n": 151}], "bars": [{"day": 98, "gdp": 0.109, "dias": 34, "label": "05-Mar\u219208-Apr"}, {"day": 140, "gdp": 0.636, "dias": 42, "label": "08-Apr\u219220-May"}, {"day": 184, "gdp": 0.725, "dias": 44, "label": "20-May\u219203-Jul"}]}, "sexo:Hembra|r2:Cuerpo": {"points": [{"label": "05-Mar", "day": 64, "peso": 178.9, "n": 168}, {"label": "09-Apr", "day": 99, "peso": 182.1, "n": 167}, {"label": "02-Jun", "day": 153, "peso": 206.3, "n": 162}, {"label": "02-Jul", "day": 183, "peso": 232.8, "n": 166}], "bars": [{"day": 99, "gdp": 0.091, "dias": 35, "label": "05-Mar\u219209-Apr"}, {"day": 153, "gdp": 0.448, "dias": 54, "label": "09-Apr\u219202-Jun"}, {"day": 183, "gdp": 0.883, "dias": 30, "label": "02-Jun\u219202-Jul"}]}, "sexo:Hembra|r2:Cola": {"points": [{"label": "26-Feb", "day": 57, "peso": 138.1, "n": 182}, {"label": "09-Apr", "day": 99, "peso": 141.9, "n": 179}, {"label": "27-May", "day": 147, "peso": 157.8, "n": 173}, {"label": "30-Jun", "day": 181, "peso": 195.0, "n": 173}, {"label": "31-Jul", "day": 212, "peso": 226.1, "n": 170}], "bars": [{"day": 99, "gdp": 0.09, "dias": 42, "label": "26-Feb\u219209-Apr"}, {"day": 147, "gdp": 0.331, "dias": 48, "label": "09-Apr\u219227-May"}, {"day": 181, "gdp": 1.094, "dias": 34, "label": "27-May\u219230-Jun"}, {"day": 212, "gdp": 1.003, "dias": 31, "label": "30-Jun\u219231-Jul"}]}, "r1:Rodeo SMM4": {"points": [{"label": "25-Feb", "day": 56, "peso": 157.8, "n": 351}, {"label": "09-Apr", "day": 99, "peso": 162.7, "n": 347}, {"label": "27-May", "day": 147, "peso": 183.6, "n": 337}, {"label": "30-Jun", "day": 181, "peso": 217.6, "n": 333}, {"label": "31-Jul", "day": 212, "peso": 234.9, "n": 185}], "bars": [{"day": 99, "gdp": 0.114, "dias": 43, "label": "25-Feb\u219209-Apr"}, {"day": 147, "gdp": 0.435, "dias": 48, "label": "09-Apr\u219227-May"}, {"day": 181, "gdp": 1.0, "dias": 34, "label": "27-May\u219230-Jun"}, {"day": 212, "gdp": 0.558, "dias": 31, "label": "30-Jun\u219231-Jul"}]}, "r1:Rodeo LF6": {"points": [{"label": "05-Mar", "day": 64, "peso": 196.5, "n": 373}, {"label": "08-Apr", "day": 98, "peso": 203.2, "n": 371}, {"label": "21-May", "day": 141, "peso": 228.0, "n": 365}, {"label": "02-Jul", "day": 183, "peso": 254.8, "n": 367}, {"label": "31-Jul", "day": 212, "peso": 228.6, "n": 41}], "bars": [{"day": 98, "gdp": 0.197, "dias": 34, "label": "05-Mar\u219208-Apr"}, {"day": 141, "gdp": 0.577, "dias": 43, "label": "08-Apr\u219221-May"}, {"day": 183, "gdp": 0.638, "dias": 42, "label": "21-May\u219202-Jul"}, {"day": 212, "gdp": -0.903, "dias": 29, "label": "02-Jul\u219231-Jul"}]}, "r1:Rodeo SMM6": {"points": [{"label": "13-Mar", "day": 72, "peso": 185.1, "n": 354}, {"label": "10-Apr", "day": 100, "peso": 186.3, "n": 348}, {"label": "21-May", "day": 141, "peso": 204.8, "n": 337}, {"label": "01-Jul", "day": 182, "peso": 234.3, "n": 344}, {"label": "31-Jul", "day": 212, "peso": 220.5, "n": 78}], "bars": [{"day": 100, "gdp": 0.043, "dias": 28, "label": "13-Mar\u219210-Apr"}, {"day": 141, "gdp": 0.451, "dias": 41, "label": "10-Apr\u219221-May"}, {"day": 182, "gdp": 0.72, "dias": 41, "label": "21-May\u219201-Jul"}, {"day": 212, "gdp": -0.46, "dias": 30, "label": "01-Jul\u219231-Jul"}]}}, "2025": {"__ALL__": {"points": [{"label": "27-Feb", "day": 58, "peso": 166.9, "n": 1086}, {"label": "04-Apr", "day": 94, "peso": 169.6, "n": 1073}, {"label": "13-May", "day": 133, "peso": 189.6, "n": 1066}, {"label": "24-Jun", "day": 175, "peso": 222.9, "n": 1065}, {"label": "30-Jul", "day": 211, "peso": 258.5, "n": 1049}, {"label": "17-Sep", "day": 260, "peso": 301.8, "n": 836}], "bars": [{"day": 94, "gdp": 0.075, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 133, "gdp": 0.513, "dias": 39, "label": "04-Apr\u219213-May"}, {"day": 175, "gdp": 0.793, "dias": 42, "label": "13-May\u219224-Jun"}, {"day": 211, "gdp": 0.989, "dias": 36, "label": "24-Jun\u219230-Jul"}, {"day": 260, "gdp": 0.884, "dias": 49, "label": "30-Jul\u219217-Sep"}]}, "sexo:Macho": {"points": [{"label": "27-Feb", "day": 58, "peso": 170.0, "n": 525}, {"label": "04-Apr", "day": 94, "peso": 173.6, "n": 519}, {"label": "13-May", "day": 133, "peso": 194.7, "n": 515}, {"label": "24-Jun", "day": 175, "peso": 228.6, "n": 514}, {"label": "30-Jul", "day": 211, "peso": 265.1, "n": 513}, {"label": "16-Sep", "day": 259, "peso": 310.4, "n": 376}], "bars": [{"day": 94, "gdp": 0.1, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 133, "gdp": 0.541, "dias": 39, "label": "04-Apr\u219213-May"}, {"day": 175, "gdp": 0.807, "dias": 42, "label": "13-May\u219224-Jun"}, {"day": 211, "gdp": 1.014, "dias": 36, "label": "24-Jun\u219230-Jul"}, {"day": 259, "gdp": 0.944, "dias": 48, "label": "30-Jul\u219216-Sep"}]}, "sexo:Hembra": {"points": [{"label": "27-Feb", "day": 58, "peso": 164.0, "n": 561}, {"label": "04-Apr", "day": 94, "peso": 165.9, "n": 554}, {"label": "13-May", "day": 133, "peso": 185.0, "n": 551}, {"label": "24-Jun", "day": 175, "peso": 217.5, "n": 551}, {"label": "30-Jul", "day": 211, "peso": 252.3, "n": 536}, {"label": "18-Sep", "day": 261, "peso": 294.7, "n": 460}], "bars": [{"day": 94, "gdp": 0.053, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 133, "gdp": 0.49, "dias": 39, "label": "04-Apr\u219213-May"}, {"day": 175, "gdp": 0.774, "dias": 42, "label": "13-May\u219224-Jun"}, {"day": 211, "gdp": 0.967, "dias": 36, "label": "24-Jun\u219230-Jul"}, {"day": 261, "gdp": 0.848, "dias": 50, "label": "30-Jul\u219218-Sep"}]}, "r2:Cabeza": {"points": [{"label": "26-Feb", "day": 57, "peso": 194.9, "n": 390}, {"label": "04-Apr", "day": 94, "peso": 198.0, "n": 390}, {"label": "14-May", "day": 134, "peso": 218.3, "n": 388}, {"label": "24-Jun", "day": 175, "peso": 247.7, "n": 388}, {"label": "05-Aug", "day": 217, "peso": 282.5, "n": 384}, {"label": "16-Sep", "day": 259, "peso": 317.6, "n": 375}], "bars": [{"day": 94, "gdp": 0.084, "dias": 37, "label": "26-Feb\u219204-Apr"}, {"day": 134, "gdp": 0.508, "dias": 40, "label": "04-Apr\u219214-May"}, {"day": 175, "gdp": 0.717, "dias": 41, "label": "14-May\u219224-Jun"}, {"day": 217, "gdp": 0.829, "dias": 42, "label": "24-Jun\u219205-Aug"}, {"day": 259, "gdp": 0.836, "dias": 42, "label": "05-Aug\u219216-Sep"}]}, "r2:Cuerpo": {"points": [{"label": "27-Feb", "day": 58, "peso": 166.8, "n": 366}, {"label": "04-Apr", "day": 94, "peso": 168.4, "n": 366}, {"label": "13-May", "day": 133, "peso": 186.5, "n": 365}, {"label": "25-Jun", "day": 176, "peso": 216.6, "n": 365}, {"label": "30-Jul", "day": 211, "peso": 245.6, "n": 359}, {"label": "18-Sep", "day": 261, "peso": 289.4, "n": 360}], "bars": [{"day": 94, "gdp": 0.044, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 133, "gdp": 0.464, "dias": 39, "label": "04-Apr\u219213-May"}, {"day": 176, "gdp": 0.7, "dias": 43, "label": "13-May\u219225-Jun"}, {"day": 211, "gdp": 0.829, "dias": 35, "label": "25-Jun\u219230-Jul"}, {"day": 261, "gdp": 0.876, "dias": 50, "label": "30-Jul\u219218-Sep"}]}, "r2:Cola": {"points": [{"label": "27-Feb", "day": 58, "peso": 133.9, "n": 330}, {"label": "04-Apr", "day": 94, "peso": 136.1, "n": 317}, {"label": "12-May", "day": 132, "peso": 157.8, "n": 313}, {"label": "17-Jun", "day": 168, "peso": 199.3, "n": 312}, {"label": "29-Jul", "day": 210, "peso": 243.6, "n": 306}, {"label": "18-Sep", "day": 261, "peso": 287.1, "n": 101}], "bars": [{"day": 94, "gdp": 0.061, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 132, "gdp": 0.571, "dias": 38, "label": "04-Apr\u219212-May"}, {"day": 168, "gdp": 1.153, "dias": 36, "label": "12-May\u219217-Jun"}, {"day": 210, "gdp": 1.055, "dias": 42, "label": "17-Jun\u219229-Jul"}, {"day": 261, "gdp": 0.853, "dias": 51, "label": "29-Jul\u219218-Sep"}]}, "sexo:Macho|r2:Cabeza": {"points": [{"label": "26-Feb", "day": 57, "peso": 196.8, "n": 207}, {"label": "04-Apr", "day": 94, "peso": 200.2, "n": 207}, {"label": "14-May", "day": 134, "peso": 222.1, "n": 206}, {"label": "24-Jun", "day": 175, "peso": 252.0, "n": 205}, {"label": "05-Aug", "day": 217, "peso": 288.4, "n": 204}, {"label": "16-Sep", "day": 259, "peso": 324.3, "n": 200}], "bars": [{"day": 94, "gdp": 0.092, "dias": 37, "label": "26-Feb\u219204-Apr"}, {"day": 134, "gdp": 0.548, "dias": 40, "label": "04-Apr\u219214-May"}, {"day": 175, "gdp": 0.729, "dias": 41, "label": "14-May\u219224-Jun"}, {"day": 217, "gdp": 0.867, "dias": 42, "label": "24-Jun\u219205-Aug"}, {"day": 259, "gdp": 0.855, "dias": 42, "label": "05-Aug\u219216-Sep"}]}, "sexo:Macho|r2:Cuerpo": {"points": [{"label": "27-Feb", "day": 58, "peso": 166.1, "n": 178}, {"label": "04-Apr", "day": 94, "peso": 168.7, "n": 178}, {"label": "13-May", "day": 133, "peso": 187.5, "n": 177}, {"label": "25-Jun", "day": 176, "peso": 219.6, "n": 178}, {"label": "30-Jul", "day": 211, "peso": 249.4, "n": 177}, {"label": "17-Sep", "day": 260, "peso": 294.6, "n": 176}], "bars": [{"day": 94, "gdp": 0.072, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 133, "gdp": 0.482, "dias": 39, "label": "04-Apr\u219213-May"}, {"day": 176, "gdp": 0.747, "dias": 43, "label": "13-May\u219225-Jun"}, {"day": 211, "gdp": 0.851, "dias": 35, "label": "25-Jun\u219230-Jul"}, {"day": 260, "gdp": 0.922, "dias": 49, "label": "30-Jul\u219217-Sep"}]}, "sexo:Macho|r2:Cola": {"points": [{"label": "27-Feb", "day": 58, "peso": 135.1, "n": 140}, {"label": "04-Apr", "day": 94, "peso": 138.9, "n": 134}, {"label": "12-May", "day": 132, "peso": 161.4, "n": 132}, {"label": "17-Jun", "day": 168, "peso": 204.2, "n": 131}, {"label": "29-Jul", "day": 210, "peso": 249.9, "n": 132}], "bars": [{"day": 94, "gdp": 0.106, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 132, "gdp": 0.592, "dias": 38, "label": "04-Apr\u219212-May"}, {"day": 168, "gdp": 1.189, "dias": 36, "label": "12-May\u219217-Jun"}, {"day": 210, "gdp": 1.088, "dias": 42, "label": "17-Jun\u219229-Jul"}]}, "sexo:Hembra|r2:Cabeza": {"points": [{"label": "10-Mar", "day": 69, "peso": 192.7, "n": 183}, {"label": "09-Apr", "day": 99, "peso": 195.4, "n": 183}, {"label": "14-May", "day": 134, "peso": 214.0, "n": 182}, {"label": "24-Jun", "day": 175, "peso": 242.9, "n": 183}, {"label": "31-Jul", "day": 212, "peso": 275.8, "n": 180}, {"label": "12-Sep", "day": 255, "peso": 309.9, "n": 175}], "bars": [{"day": 99, "gdp": 0.09, "dias": 30, "label": "10-Mar\u219209-Apr"}, {"day": 134, "gdp": 0.531, "dias": 35, "label": "09-Apr\u219214-May"}, {"day": 175, "gdp": 0.705, "dias": 41, "label": "14-May\u219224-Jun"}, {"day": 212, "gdp": 0.889, "dias": 37, "label": "24-Jun\u219231-Jul"}, {"day": 255, "gdp": 0.793, "dias": 43, "label": "31-Jul\u219212-Sep"}]}, "sexo:Hembra|r2:Cuerpo": {"points": [{"label": "26-Feb", "day": 57, "peso": 167.5, "n": 188}, {"label": "04-Apr", "day": 94, "peso": 168.2, "n": 188}, {"label": "13-May", "day": 133, "peso": 185.5, "n": 188}, {"label": "25-Jun", "day": 176, "peso": 213.7, "n": 187}, {"label": "30-Jul", "day": 211, "peso": 241.8, "n": 182}, {"label": "18-Sep", "day": 261, "peso": 284.3, "n": 184}], "bars": [{"day": 94, "gdp": 0.019, "dias": 37, "label": "26-Feb\u219204-Apr"}, {"day": 133, "gdp": 0.444, "dias": 39, "label": "04-Apr\u219213-May"}, {"day": 176, "gdp": 0.656, "dias": 43, "label": "13-May\u219225-Jun"}, {"day": 211, "gdp": 0.803, "dias": 35, "label": "25-Jun\u219230-Jul"}, {"day": 261, "gdp": 0.85, "dias": 50, "label": "30-Jul\u219218-Sep"}]}, "sexo:Hembra|r2:Cola": {"points": [{"label": "27-Feb", "day": 58, "peso": 133.0, "n": 190}, {"label": "04-Apr", "day": 94, "peso": 134.1, "n": 183}, {"label": "12-May", "day": 132, "peso": 155.1, "n": 181}, {"label": "17-Jun", "day": 168, "peso": 195.7, "n": 181}, {"label": "29-Jul", "day": 210, "peso": 238.8, "n": 174}, {"label": "18-Sep", "day": 261, "peso": 287.1, "n": 101}], "bars": [{"day": 94, "gdp": 0.031, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 132, "gdp": 0.553, "dias": 38, "label": "04-Apr\u219212-May"}, {"day": 168, "gdp": 1.128, "dias": 36, "label": "12-May\u219217-Jun"}, {"day": 210, "gdp": 1.026, "dias": 42, "label": "17-Jun\u219229-Jul"}, {"day": 261, "gdp": 0.947, "dias": 51, "label": "29-Jul\u219218-Sep"}]}, "r1:Rodeo Vaca": {"points": [{"label": "21-Feb", "day": 52, "peso": 170.8, "n": 398}, {"label": "03-Apr", "day": 93, "peso": 174.3, "n": 396}, {"label": "13-May", "day": 133, "peso": 196.3, "n": 393}, {"label": "24-Jun", "day": 175, "peso": 227.7, "n": 392}, {"label": "30-Jul", "day": 211, "peso": 261.8, "n": 389}, {"label": "16-Sep", "day": 259, "peso": 306.3, "n": 325}], "bars": [{"day": 93, "gdp": 0.085, "dias": 41, "label": "21-Feb\u219203-Apr"}, {"day": 133, "gdp": 0.55, "dias": 40, "label": "03-Apr\u219213-May"}, {"day": 175, "gdp": 0.748, "dias": 42, "label": "13-May\u219224-Jun"}, {"day": 211, "gdp": 0.947, "dias": 36, "label": "24-Jun\u219230-Jul"}, {"day": 259, "gdp": 0.927, "dias": 48, "label": "30-Jul\u219216-Sep"}]}, "r1:Rodeo VQ": {"points": [{"label": "27-Feb", "day": 58, "peso": 150.4, "n": 325}, {"label": "04-Apr", "day": 94, "peso": 154.3, "n": 316}, {"label": "12-May", "day": 132, "peso": 179.7, "n": 315}, {"label": "17-Jun", "day": 168, "peso": 217.2, "n": 314}, {"label": "30-Jul", "day": 211, "peso": 254.3, "n": 312}, {"label": "17-Sep", "day": 260, "peso": 295.8, "n": 206}], "bars": [{"day": 94, "gdp": 0.108, "dias": 36, "label": "27-Feb\u219204-Apr"}, {"day": 132, "gdp": 0.668, "dias": 38, "label": "04-Apr\u219212-May"}, {"day": 168, "gdp": 1.042, "dias": 36, "label": "12-May\u219217-Jun"}, {"day": 211, "gdp": 0.863, "dias": 43, "label": "17-Jun\u219230-Jul"}, {"day": 260, "gdp": 0.847, "dias": 49, "label": "30-Jul\u219217-Sep"}]}, "r1:Rodeo DCH": {"points": [{"label": "10-Mar", "day": 69, "peso": 177.4, "n": 363}, {"label": "09-Apr", "day": 99, "peso": 177.9, "n": 361}, {"label": "13-May", "day": 133, "peso": 191.1, "n": 358}, {"label": "24-Jun", "day": 175, "peso": 222.5, "n": 359}, {"label": "30-Jul", "day": 211, "peso": 258.6, "n": 348}, {"label": "16-Sep", "day": 259, "peso": 300.9, "n": 305}], "bars": [{"day": 99, "gdp": 0.017, "dias": 30, "label": "10-Mar\u219209-Apr"}, {"day": 133, "gdp": 0.388, "dias": 34, "label": "09-Apr\u219213-May"}, {"day": 175, "gdp": 0.748, "dias": 42, "label": "13-May\u219224-Jun"}, {"day": 211, "gdp": 1.003, "dias": 36, "label": "24-Jun\u219230-Jul"}, {"day": 259, "gdp": 0.881, "dias": 48, "label": "30-Jul\u219216-Sep"}]}}, "2024": {"__ALL__": {"points": [{"label": "28-Feb", "day": 59, "peso": 185.6, "n": 1218}, {"label": "04-Apr", "day": 95, "peso": 193.8, "n": 1216}, {"label": "29-May", "day": 150, "peso": 206.9, "n": 1213}, {"label": "28-Jun", "day": 180, "peso": 228.9, "n": 1217}, {"label": "14-Aug", "day": 227, "peso": 249.5, "n": 1214}, {"label": "17-Sep", "day": 261, "peso": 272.5, "n": 1022}], "bars": [{"day": 95, "gdp": 0.228, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.238, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 180, "gdp": 0.733, "dias": 30, "label": "29-May\u219228-Jun"}, {"day": 227, "gdp": 0.438, "dias": 47, "label": "28-Jun\u219214-Aug"}, {"day": 261, "gdp": 0.676, "dias": 34, "label": "14-Aug\u219217-Sep"}]}, "sexo:Macho": {"points": [{"label": "28-Feb", "day": 59, "peso": 190.5, "n": 598}, {"label": "04-Apr", "day": 95, "peso": 200.2, "n": 596}, {"label": "29-May", "day": 150, "peso": 214.7, "n": 596}, {"label": "28-Jun", "day": 180, "peso": 239.4, "n": 598}, {"label": "16-Aug", "day": 229, "peso": 255.5, "n": 594}, {"label": "19-Sep", "day": 263, "peso": 280.7, "n": 584}], "bars": [{"day": 95, "gdp": 0.269, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.264, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 180, "gdp": 0.823, "dias": 30, "label": "29-May\u219228-Jun"}, {"day": 229, "gdp": 0.329, "dias": 49, "label": "28-Jun\u219216-Aug"}, {"day": 263, "gdp": 0.741, "dias": 34, "label": "16-Aug\u219219-Sep"}]}, "sexo:Hembra": {"points": [{"label": "28-Feb", "day": 59, "peso": 180.9, "n": 620}, {"label": "04-Apr", "day": 95, "peso": 187.5, "n": 620}, {"label": "29-May", "day": 150, "peso": 199.3, "n": 617}, {"label": "04-Jul", "day": 186, "peso": 218.7, "n": 619}, {"label": "14-Aug", "day": 227, "peso": 243.7, "n": 620}, {"label": "10-Sep", "day": 254, "peso": 261.5, "n": 438}], "bars": [{"day": 95, "gdp": 0.183, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.215, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 186, "gdp": 0.539, "dias": 36, "label": "29-May\u219204-Jul"}, {"day": 227, "gdp": 0.61, "dias": 41, "label": "04-Jul\u219214-Aug"}, {"day": 254, "gdp": 0.659, "dias": 27, "label": "14-Aug\u219210-Sep"}]}, "r2:Cabeza": {"points": [{"label": "28-Feb", "day": 59, "peso": 202.1, "n": 728}, {"label": "04-Apr", "day": 95, "peso": 212.2, "n": 727}, {"label": "29-May", "day": 150, "peso": 227.8, "n": 725}, {"label": "28-Jun", "day": 180, "peso": 253.2, "n": 727}, {"label": "16-Aug", "day": 229, "peso": 266.3, "n": 724}, {"label": "19-Sep", "day": 263, "peso": 283.6, "n": 716}], "bars": [{"day": 95, "gdp": 0.281, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.284, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 180, "gdp": 0.847, "dias": 30, "label": "29-May\u219228-Jun"}, {"day": 229, "gdp": 0.267, "dias": 49, "label": "28-Jun\u219216-Aug"}, {"day": 263, "gdp": 0.509, "dias": 34, "label": "16-Aug\u219219-Sep"}]}, "r2:Cuerpo": {"points": [{"label": "28-Feb", "day": 59, "peso": 172.4, "n": 305}, {"label": "04-Apr", "day": 95, "peso": 177.7, "n": 305}, {"label": "29-May", "day": 150, "peso": 188.5, "n": 305}, {"label": "25-Jun", "day": 177, "peso": 207.0, "n": 305}, {"label": "13-Aug", "day": 226, "peso": 239.3, "n": 305}, {"label": "17-Sep", "day": 261, "peso": 258.0, "n": 214}], "bars": [{"day": 95, "gdp": 0.147, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.196, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 177, "gdp": 0.685, "dias": 27, "label": "29-May\u219225-Jun"}, {"day": 226, "gdp": 0.659, "dias": 49, "label": "25-Jun\u219213-Aug"}, {"day": 261, "gdp": 0.534, "dias": 35, "label": "13-Aug\u219217-Sep"}]}, "r2:Cola": {"points": [{"label": "28-Feb", "day": 59, "peso": 142.2, "n": 185}, {"label": "04-Apr", "day": 95, "peso": 147.5, "n": 184}, {"label": "29-May", "day": 150, "peso": 154.6, "n": 183}, {"label": "03-Jul", "day": 185, "peso": 169.3, "n": 185}, {"label": "12-Aug", "day": 225, "peso": 200.6, "n": 185}, {"label": "18-Sep", "day": 262, "peso": 219.8, "n": 92}], "bars": [{"day": 95, "gdp": 0.147, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.129, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 185, "gdp": 0.42, "dias": 35, "label": "29-May\u219203-Jul"}, {"day": 225, "gdp": 0.782, "dias": 40, "label": "03-Jul\u219212-Aug"}, {"day": 262, "gdp": 0.519, "dias": 37, "label": "12-Aug\u219218-Sep"}]}, "sexo:Macho|r2:Cabeza": {"points": [{"label": "28-Feb", "day": 59, "peso": 203.5, "n": 414}, {"label": "04-Apr", "day": 95, "peso": 214.5, "n": 413}, {"label": "29-May", "day": 150, "peso": 231.0, "n": 412}, {"label": "28-Jun", "day": 180, "peso": 258.0, "n": 414}, {"label": "16-Aug", "day": 229, "peso": 266.6, "n": 410}, {"label": "19-Sep", "day": 263, "peso": 292.9, "n": 404}], "bars": [{"day": 95, "gdp": 0.306, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.3, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 180, "gdp": 0.9, "dias": 30, "label": "29-May\u219228-Jun"}, {"day": 229, "gdp": 0.176, "dias": 49, "label": "28-Jun\u219216-Aug"}, {"day": 263, "gdp": 0.774, "dias": 34, "label": "16-Aug\u219219-Sep"}]}, "sexo:Macho|r2:Cuerpo": {"points": [{"label": "28-Feb", "day": 59, "peso": 171.9, "n": 125}, {"label": "04-Apr", "day": 95, "peso": 178.4, "n": 125}, {"label": "29-May", "day": 150, "peso": 189.2, "n": 125}, {"label": "25-Jun", "day": 177, "peso": 209.2, "n": 125}, {"label": "13-Aug", "day": 226, "peso": 242.7, "n": 125}, {"label": "17-Sep", "day": 261, "peso": 265.1, "n": 122}], "bars": [{"day": 95, "gdp": 0.181, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.196, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 177, "gdp": 0.741, "dias": 27, "label": "29-May\u219225-Jun"}, {"day": 226, "gdp": 0.684, "dias": 49, "label": "25-Jun\u219213-Aug"}, {"day": 261, "gdp": 0.64, "dias": 35, "label": "13-Aug\u219217-Sep"}]}, "sexo:Macho|r2:Cola": {"points": [{"label": "28-Feb", "day": 59, "peso": 138.3, "n": 59}, {"label": "04-Apr", "day": 95, "peso": 146.2, "n": 58}, {"label": "29-May", "day": 150, "peso": 155.0, "n": 59}, {"label": "03-Jul", "day": 185, "peso": 172.4, "n": 59}, {"label": "12-Aug", "day": 225, "peso": 205.7, "n": 59}, {"label": "18-Sep", "day": 262, "peso": 228.8, "n": 58}], "bars": [{"day": 95, "gdp": 0.219, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.16, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 185, "gdp": 0.497, "dias": 35, "label": "29-May\u219203-Jul"}, {"day": 225, "gdp": 0.832, "dias": 40, "label": "03-Jul\u219212-Aug"}, {"day": 262, "gdp": 0.624, "dias": 37, "label": "12-Aug\u219218-Sep"}]}, "sexo:Hembra|r2:Cabeza": {"points": [{"label": "28-Feb", "day": 59, "peso": 200.3, "n": 314}, {"label": "04-Apr", "day": 95, "peso": 209.2, "n": 314}, {"label": "29-May", "day": 150, "peso": 223.6, "n": 313}, {"label": "04-Jul", "day": 186, "peso": 246.7, "n": 313}, {"label": "14-Aug", "day": 227, "peso": 265.8, "n": 314}, {"label": "10-Sep", "day": 254, "peso": 271.5, "n": 312}], "bars": [{"day": 95, "gdp": 0.247, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.262, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 186, "gdp": 0.642, "dias": 36, "label": "29-May\u219204-Jul"}, {"day": 227, "gdp": 0.466, "dias": 41, "label": "04-Jul\u219214-Aug"}, {"day": 254, "gdp": 0.211, "dias": 27, "label": "14-Aug\u219210-Sep"}]}, "sexo:Hembra|r2:Cuerpo": {"points": [{"label": "28-Feb", "day": 59, "peso": 172.7, "n": 180}, {"label": "04-Apr", "day": 95, "peso": 177.2, "n": 180}, {"label": "29-May", "day": 150, "peso": 188.0, "n": 180}, {"label": "25-Jun", "day": 177, "peso": 205.5, "n": 180}, {"label": "13-Aug", "day": 226, "peso": 237.0, "n": 180}, {"label": "10-Sep", "day": 254, "peso": 248.7, "n": 92}], "bars": [{"day": 95, "gdp": 0.125, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.196, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 177, "gdp": 0.648, "dias": 27, "label": "29-May\u219225-Jun"}, {"day": 226, "gdp": 0.643, "dias": 49, "label": "25-Jun\u219213-Aug"}, {"day": 254, "gdp": 0.418, "dias": 28, "label": "13-Aug\u219210-Sep"}]}, "sexo:Hembra|r2:Cola": {"points": [{"label": "29-Feb", "day": 60, "peso": 144.1, "n": 126}, {"label": "04-Apr", "day": 95, "peso": 148.2, "n": 126}, {"label": "29-May", "day": 150, "peso": 154.4, "n": 124}, {"label": "03-Jul", "day": 185, "peso": 167.8, "n": 126}, {"label": "12-Aug", "day": 225, "peso": 198.2, "n": 126}, {"label": "10-Sep", "day": 254, "peso": 204.5, "n": 34}], "bars": [{"day": 95, "gdp": 0.117, "dias": 35, "label": "29-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.113, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 185, "gdp": 0.383, "dias": 35, "label": "29-May\u219203-Jul"}, {"day": 225, "gdp": 0.76, "dias": 40, "label": "03-Jul\u219212-Aug"}, {"day": 254, "gdp": 0.217, "dias": 29, "label": "12-Aug\u219210-Sep"}]}, "r1:SMM 3-4": {"points": [{"label": "23-Feb", "day": 54, "peso": 207.0, "n": 135}, {"label": "03-Apr", "day": 94, "peso": 220.6, "n": 135}, {"label": "28-May", "day": 149, "peso": 235.2, "n": 134}, {"label": "28-Jun", "day": 180, "peso": 261.1, "n": 135}, {"label": "14-Aug", "day": 227, "peso": 278.6, "n": 135}, {"label": "18-Sep", "day": 262, "peso": 303.8, "n": 124}], "bars": [{"day": 94, "gdp": 0.34, "dias": 40, "label": "23-Feb\u219203-Apr"}, {"day": 149, "gdp": 0.265, "dias": 55, "label": "03-Apr\u219228-May"}, {"day": 180, "gdp": 0.835, "dias": 31, "label": "28-May\u219228-Jun"}, {"day": 227, "gdp": 0.372, "dias": 47, "label": "28-Jun\u219214-Aug"}, {"day": 262, "gdp": 0.72, "dias": 35, "label": "14-Aug\u219218-Sep"}]}, "r1:LF 5-7": {"points": [{"label": "21-Feb", "day": 52, "peso": 180.6, "n": 394}, {"label": "05-Apr", "day": 96, "peso": 193.6, "n": 393}, {"label": "30-May", "day": 151, "peso": 207.3, "n": 392}, {"label": "28-Jun", "day": 180, "peso": 237.0, "n": 393}, {"label": "14-Aug", "day": 227, "peso": 255.5, "n": 393}, {"label": "17-Sep", "day": 261, "peso": 275.6, "n": 344}], "bars": [{"day": 96, "gdp": 0.295, "dias": 44, "label": "21-Feb\u219205-Apr"}, {"day": 151, "gdp": 0.249, "dias": 55, "label": "05-Apr\u219230-May"}, {"day": 180, "gdp": 1.024, "dias": 29, "label": "30-May\u219228-Jun"}, {"day": 227, "gdp": 0.394, "dias": 47, "label": "28-Jun\u219214-Aug"}, {"day": 261, "gdp": 0.591, "dias": 34, "label": "14-Aug\u219217-Sep"}]}, "r1:SMM 5-6": {"points": [{"label": "28-Feb", "day": 59, "peso": 185.1, "n": 466}, {"label": "04-Apr", "day": 95, "peso": 190.8, "n": 465}, {"label": "29-May", "day": 150, "peso": 207.1, "n": 465}, {"label": "28-Jun", "day": 180, "peso": 222.9, "n": 466}, {"label": "14-Aug", "day": 227, "peso": 243.8, "n": 463}, {"label": "18-Sep", "day": 262, "peso": 269.3, "n": 378}], "bars": [{"day": 95, "gdp": 0.158, "dias": 36, "label": "28-Feb\u219204-Apr"}, {"day": 150, "gdp": 0.296, "dias": 55, "label": "04-Apr\u219229-May"}, {"day": 180, "gdp": 0.527, "dias": 30, "label": "29-May\u219228-Jun"}, {"day": 227, "gdp": 0.445, "dias": 47, "label": "28-Jun\u219214-Aug"}, {"day": 262, "gdp": 0.729, "dias": 35, "label": "14-Aug\u219218-Sep"}]}, "r1:LF 1-2": {"points": [{"label": "06-Mar", "day": 66, "peso": 182.4, "n": 223}, {"label": "03-Apr", "day": 94, "peso": 184.0, "n": 223}, {"label": "28-May", "day": 149, "peso": 188.6, "n": 222}, {"label": "03-Jul", "day": 185, "peso": 207.5, "n": 223}, {"label": "13-Aug", "day": 226, "peso": 233.2, "n": 223}, {"label": "10-Sep", "day": 254, "peso": 251.3, "n": 176}], "bars": [{"day": 94, "gdp": 0.057, "dias": 28, "label": "06-Mar\u219203-Apr"}, {"day": 149, "gdp": 0.084, "dias": 55, "label": "03-Apr\u219228-May"}, {"day": 185, "gdp": 0.525, "dias": 36, "label": "28-May\u219203-Jul"}, {"day": 226, "gdp": 0.627, "dias": 41, "label": "03-Jul\u219213-Aug"}, {"day": 254, "gdp": 0.646, "dias": 28, "label": "13-Aug\u219210-Sep"}]}}, "2023": {"__ALL__": {"points": [{"label": "22-Feb", "day": 53, "peso": 197.5, "n": 974}, {"label": "31-Mar", "day": 90, "peso": 209.8, "n": 965}, {"label": "17-May", "day": 137, "peso": 208.4, "n": 390}, {"label": "13-Jul", "day": 194, "peso": 260.3, "n": 960}, {"label": "29-Aug", "day": 241, "peso": 296.7, "n": 960}, {"label": "06-Oct", "day": 279, "peso": 349.4, "n": 776}], "bars": [{"day": 90, "gdp": 0.332, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": -0.03, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 194, "gdp": 0.911, "dias": 57, "label": "17-May\u219213-Jul"}, {"day": 241, "gdp": 0.774, "dias": 47, "label": "13-Jul\u219229-Aug"}, {"day": 279, "gdp": 1.387, "dias": 38, "label": "29-Aug\u219206-Oct"}]}, "sexo:Macho": {"points": [{"label": "22-Feb", "day": 53, "peso": 203.8, "n": 455}, {"label": "31-Mar", "day": 90, "peso": 216.3, "n": 450}, {"label": "17-May", "day": 137, "peso": 210.6, "n": 182}, {"label": "18-Jul", "day": 199, "peso": 261.9, "n": 443}, {"label": "30-Aug", "day": 242, "peso": 296.0, "n": 444}, {"label": "06-Oct", "day": 279, "peso": 336.6, "n": 441}], "bars": [{"day": 90, "gdp": 0.338, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": -0.121, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 199, "gdp": 0.827, "dias": 62, "label": "17-May\u219218-Jul"}, {"day": 242, "gdp": 0.793, "dias": 43, "label": "18-Jul\u219230-Aug"}, {"day": 279, "gdp": 1.097, "dias": 37, "label": "30-Aug\u219206-Oct"}]}, "sexo:Hembra": {"points": [{"label": "22-Feb", "day": 53, "peso": 192.0, "n": 519}, {"label": "31-Mar", "day": 90, "peso": 204.1, "n": 515}, {"label": "17-May", "day": 137, "peso": 206.5, "n": 208}, {"label": "12-Jul", "day": 193, "peso": 258.8, "n": 517}, {"label": "29-Aug", "day": 241, "peso": 297.3, "n": 516}, {"label": "20-Oct", "day": 293, "peso": 366.4, "n": 335}], "bars": [{"day": 90, "gdp": 0.327, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.051, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 193, "gdp": 0.934, "dias": 56, "label": "17-May\u219212-Jul"}, {"day": 241, "gdp": 0.802, "dias": 48, "label": "12-Jul\u219229-Aug"}, {"day": 293, "gdp": 1.329, "dias": 52, "label": "29-Aug\u219220-Oct"}]}, "r2:Cabeza": {"points": [{"label": "21-Feb", "day": 52, "peso": 211.3, "n": 708}, {"label": "30-Mar", "day": 89, "peso": 224.7, "n": 705}, {"label": "17-May", "day": 137, "peso": 229.0, "n": 217}, {"label": "12-Jul", "day": 193, "peso": 273.3, "n": 697}, {"label": "30-Aug", "day": 242, "peso": 310.8, "n": 696}, {"label": "06-Oct", "day": 279, "peso": 358.4, "n": 646}], "bars": [{"day": 89, "gdp": 0.362, "dias": 37, "label": "21-Feb\u219230-Mar"}, {"day": 137, "gdp": 0.09, "dias": 48, "label": "30-Mar\u219217-May"}, {"day": 193, "gdp": 0.791, "dias": 56, "label": "17-May\u219212-Jul"}, {"day": 242, "gdp": 0.765, "dias": 49, "label": "12-Jul\u219230-Aug"}, {"day": 279, "gdp": 1.286, "dias": 37, "label": "30-Aug\u219206-Oct"}]}, "r2:Cuerpo": {"points": [{"label": "22-Feb", "day": 53, "peso": 169.1, "n": 194}, {"label": "31-Mar", "day": 90, "peso": 178.1, "n": 191}, {"label": "17-May", "day": 137, "peso": 192.2, "n": 123}, {"label": "13-Jul", "day": 194, "peso": 237.6, "n": 191}, {"label": "24-Aug", "day": 236, "peso": 268.0, "n": 192}, {"label": "04-Oct", "day": 277, "peso": 311.9, "n": 106}], "bars": [{"day": 90, "gdp": 0.243, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.3, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 194, "gdp": 0.796, "dias": 57, "label": "17-May\u219213-Jul"}, {"day": 236, "gdp": 0.724, "dias": 42, "label": "13-Jul\u219224-Aug"}, {"day": 277, "gdp": 1.071, "dias": 41, "label": "24-Aug\u219204-Oct"}]}, "r2:Cola": {"points": [{"label": "22-Feb", "day": 53, "peso": 138.1, "n": 72}, {"label": "31-Mar", "day": 90, "peso": 145.7, "n": 69}, {"label": "17-May", "day": 137, "peso": 159.0, "n": 50}, {"label": "11-Jul", "day": 192, "peso": 194.0, "n": 72}, {"label": "23-Aug", "day": 235, "peso": 236.8, "n": 72}, {"label": "04-Oct", "day": 277, "peso": 275.2, "n": 24}], "bars": [{"day": 90, "gdp": 0.205, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.283, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 192, "gdp": 0.636, "dias": 55, "label": "17-May\u219211-Jul"}, {"day": 235, "gdp": 0.995, "dias": 43, "label": "11-Jul\u219223-Aug"}, {"day": 277, "gdp": 0.914, "dias": 42, "label": "23-Aug\u219204-Oct"}]}, "sexo:Macho|r2:Cabeza": {"points": [{"label": "21-Feb", "day": 52, "peso": 215.5, "n": 352}, {"label": "30-Mar", "day": 89, "peso": 229.0, "n": 349}, {"label": "17-May", "day": 137, "peso": 229.6, "n": 104}, {"label": "18-Jul", "day": 199, "peso": 271.4, "n": 342}, {"label": "30-Aug", "day": 242, "peso": 305.5, "n": 342}, {"label": "06-Oct", "day": 279, "peso": 347.5, "n": 339}], "bars": [{"day": 89, "gdp": 0.365, "dias": 37, "label": "21-Feb\u219230-Mar"}, {"day": 137, "gdp": 0.012, "dias": 48, "label": "30-Mar\u219217-May"}, {"day": 199, "gdp": 0.674, "dias": 62, "label": "17-May\u219218-Jul"}, {"day": 242, "gdp": 0.793, "dias": 43, "label": "18-Jul\u219230-Aug"}, {"day": 279, "gdp": 1.135, "dias": 37, "label": "30-Aug\u219206-Oct"}]}, "sexo:Macho|r2:Cuerpo": {"points": [{"label": "22-Feb", "day": 53, "peso": 170.4, "n": 79}, {"label": "31-Mar", "day": 90, "peso": 179.5, "n": 78}, {"label": "17-May", "day": 137, "peso": 193.5, "n": 59}, {"label": "13-Jul", "day": 194, "peso": 241.2, "n": 77}, {"label": "24-Aug", "day": 236, "peso": 271.6, "n": 78}, {"label": "04-Oct", "day": 277, "peso": 307.8, "n": 78}], "bars": [{"day": 90, "gdp": 0.246, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.298, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 194, "gdp": 0.837, "dias": 57, "label": "17-May\u219213-Jul"}, {"day": 236, "gdp": 0.724, "dias": 42, "label": "13-Jul\u219224-Aug"}, {"day": 277, "gdp": 0.883, "dias": 41, "label": "24-Aug\u219204-Oct"}]}, "sexo:Macho|r2:Cola": {"points": [{"label": "22-Feb", "day": 53, "peso": 141.1, "n": 24}, {"label": "31-Mar", "day": 90, "peso": 148.7, "n": 23}, {"label": "17-May", "day": 137, "peso": 159.7, "n": 19}, {"label": "11-Jul", "day": 192, "peso": 193.5, "n": 24}, {"label": "23-Aug", "day": 235, "peso": 240.5, "n": 24}, {"label": "04-Oct", "day": 277, "peso": 275.2, "n": 24}], "bars": [{"day": 90, "gdp": 0.205, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.234, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 192, "gdp": 0.615, "dias": 55, "label": "17-May\u219211-Jul"}, {"day": 235, "gdp": 1.093, "dias": 43, "label": "11-Jul\u219223-Aug"}, {"day": 277, "gdp": 0.826, "dias": 42, "label": "23-Aug\u219204-Oct"}]}, "sexo:Hembra|r2:Cabeza": {"points": [{"label": "22-Feb", "day": 53, "peso": 207.1, "n": 356}, {"label": "31-Mar", "day": 90, "peso": 220.4, "n": 356}, {"label": "17-May", "day": 137, "peso": 228.4, "n": 113}, {"label": "12-Jul", "day": 193, "peso": 275.2, "n": 355}, {"label": "29-Aug", "day": 241, "peso": 315.9, "n": 354}, {"label": "20-Oct", "day": 293, "peso": 370.3, "n": 307}], "bars": [{"day": 90, "gdp": 0.359, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.17, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 193, "gdp": 0.836, "dias": 56, "label": "17-May\u219212-Jul"}, {"day": 241, "gdp": 0.848, "dias": 48, "label": "12-Jul\u219229-Aug"}, {"day": 293, "gdp": 1.046, "dias": 52, "label": "29-Aug\u219220-Oct"}]}, "sexo:Hembra|r2:Cuerpo": {"points": [{"label": "24-Feb", "day": 55, "peso": 168.3, "n": 115}, {"label": "31-Mar", "day": 90, "peso": 177.2, "n": 113}, {"label": "17-May", "day": 137, "peso": 191.0, "n": 64}, {"label": "13-Jul", "day": 194, "peso": 235.1, "n": 114}, {"label": "24-Aug", "day": 236, "peso": 265.6, "n": 114}, {"label": "19-Oct", "day": 292, "peso": 323.2, "n": 28}], "bars": [{"day": 90, "gdp": 0.254, "dias": 35, "label": "24-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.294, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 194, "gdp": 0.774, "dias": 57, "label": "17-May\u219213-Jul"}, {"day": 236, "gdp": 0.726, "dias": 42, "label": "13-Jul\u219224-Aug"}, {"day": 292, "gdp": 1.029, "dias": 56, "label": "24-Aug\u219219-Oct"}]}, "sexo:Hembra|r2:Cola": {"points": [{"label": "22-Feb", "day": 53, "peso": 136.7, "n": 48}, {"label": "31-Mar", "day": 90, "peso": 144.1, "n": 46}, {"label": "17-May", "day": 137, "peso": 158.6, "n": 31}, {"label": "11-Jul", "day": 192, "peso": 194.2, "n": 48}, {"label": "23-Aug", "day": 235, "peso": 234.9, "n": 48}], "bars": [{"day": 90, "gdp": 0.2, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.309, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 192, "gdp": 0.647, "dias": 55, "label": "17-May\u219211-Jul"}, {"day": 235, "gdp": 0.947, "dias": 43, "label": "11-Jul\u219223-Aug"}]}, "r1:SMM 6": {"points": [{"label": "16-Feb", "day": 47, "peso": 215.9, "n": 398}, {"label": "30-Mar", "day": 89, "peso": 230.4, "n": 395}, {"label": "13-Jul", "day": 194, "peso": 281.7, "n": 393}, {"label": "29-Aug", "day": 241, "peso": 317.0, "n": 393}, {"label": "06-Oct", "day": 279, "peso": 365.8, "n": 379}], "bars": [{"day": 89, "gdp": 0.345, "dias": 42, "label": "16-Feb\u219230-Mar"}, {"day": 194, "gdp": 0.489, "dias": 105, "label": "30-Mar\u219213-Jul"}, {"day": 241, "gdp": 0.751, "dias": 47, "label": "13-Jul\u219229-Aug"}, {"day": 279, "gdp": 1.284, "dias": 38, "label": "29-Aug\u219206-Oct"}]}, "r1:SMM 5": {"points": [{"label": "28-Feb", "day": 59, "peso": 192.5, "n": 178}, {"label": "04-Apr", "day": 94, "peso": 200.7, "n": 176}, {"label": "13-Jul", "day": 194, "peso": 254.7, "n": 173}, {"label": "30-Aug", "day": 242, "peso": 292.8, "n": 172}, {"label": "06-Oct", "day": 279, "peso": 338.1, "n": 87}], "bars": [{"day": 94, "gdp": 0.234, "dias": 35, "label": "28-Feb\u219204-Apr"}, {"day": 194, "gdp": 0.54, "dias": 100, "label": "04-Apr\u219213-Jul"}, {"day": 242, "gdp": 0.794, "dias": 48, "label": "13-Jul\u219230-Aug"}, {"day": 279, "gdp": 1.224, "dias": 37, "label": "30-Aug\u219206-Oct"}]}, "r1:SMM 4": {"points": [{"label": "22-Feb", "day": 53, "peso": 181.3, "n": 398}, {"label": "31-Mar", "day": 90, "peso": 193.2, "n": 394}, {"label": "17-May", "day": 137, "peso": 208.4, "n": 390}, {"label": "13-Jul", "day": 194, "peso": 241.3, "n": 394}, {"label": "29-Aug", "day": 241, "peso": 278.2, "n": 395}, {"label": "06-Oct", "day": 279, "peso": 332.7, "n": 310}], "bars": [{"day": 90, "gdp": 0.322, "dias": 37, "label": "22-Feb\u219231-Mar"}, {"day": 137, "gdp": 0.323, "dias": 47, "label": "31-Mar\u219217-May"}, {"day": 194, "gdp": 0.577, "dias": 57, "label": "17-May\u219213-Jul"}, {"day": 241, "gdp": 0.785, "dias": 47, "label": "13-Jul\u219229-Aug"}, {"day": 279, "gdp": 1.434, "dias": 38, "label": "29-Aug\u219206-Oct"}]}}};
+const R1_BY_YEAR_INIT = {"2026": ["Rodeo SMM4", "Rodeo LF6", "Rodeo SMM6"], "2025": ["Rodeo Vaca", "Rodeo VQ", "Rodeo DCH"], "2024": ["SMM 3-4", "LF 5-7", "SMM 5-6", "LF 1-2"], "2023": ["SMM 6", "SMM 5", "SMM 4"]};
+const LAST_UPDATE = "14/08/2026 01:41";
+// ##DATA_END##
+
+const R1_BY_YEAR = R1_BY_YEAR_INIT;
+const YR_COLORS = {'2023':'#f97316','2024':'#a78bfa','2025':'#34d399','2026':'#60a5fa'};
+const PALETTE = ['#60a5fa','#f97316','#34d399','#a78bfa','#fb7185','#fbbf24'];
+const MONTHS = [{d:1,l:'Ene'},{d:32,l:'Feb'},{d:60,l:'Mar'},{d:91,l:'Abr'},{d:121,l:'May'},{d:152,l:'Jun'},{d:182,l:'Jul'},{d:213,l:'Ago'},{d:244,l:'Sep'},{d:274,l:'Oct'}];
+const MAX_LINES = 5;
+let showGdp = false;
+
+function hexAlpha(hex, a) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function gdpColor(v) { return v<0.2?'rgba(239,68,68,0.6)':v<0.5?'rgba(251,191,36,0.6)':'rgba(52,211,153,0.6)'; }
+function gdpBorder(v){ return v<0.2?'rgba(239,68,68,0.9)':v<0.5?'rgba(251,191,36,0.9)':'rgba(52,211,153,0.9)'; }
+
+function toggleGdp(btn) {
+  showGdp = !showGdp;
+  btn.classList.toggle('sel', showGdp);
+  btn.style.color = showGdp ? '#34d399' : '';
+  btn.style.borderColor = showGdp ? '#34d399' : '';
+  render();
+}
+
+// ── FILTER STATE ──────────────────────────────────────────────────────────────
+const F = {
+  year:  { sel: new Set(['2023','2024','2025','2026']), all: ['2023','2024','2025','2026'] },
+  sexo:  { sel: new Set(['Macho','Hembra']), all: ['Macho','Hembra'] },
+  r2:    { sel: new Set(['Cabeza','Cuerpo','Cola']), all: ['Cabeza','Cuerpo','Cola'] },
+  r1:    { sel: new Set(), all: [] },  // empty sel = all
+};
+
+function isSep(dim) { return document.getElementById('sep'+dim.charAt(0).toUpperCase()+dim.slice(1))?.checked || false; }
+
+// ── KEY BUILDER ───────────────────────────────────────────────────────────────
+// Build precomp key from (sexo, r1, r2) values. null = no constraint.
+function buildKey(sx, r1, r2) {
+  const p = [];
+  if (sx)  p.push('sexo:'+sx);
+  if (r1)  p.push('r1:'+r1);
+  if (r2)  p.push('r2:'+r2);
+  if (p.length === 0) return '__ALL__';
+  // Supported: sexo only, r2 only, r1 only, sexo+r2
+  // NOT supported: r1+sexo, r1+r2, r1+sexo+r2 → fallback
+  if (r1 && (sx || r2)) {
+    // Fallback: ignore other constraints
+    return 'r1:'+r1;
+  }
+  return p.join('|');
+}
+
+// ── LINE GENERATOR ────────────────────────────────────────────────────────────
+function getLines() {
+  const lines = [];
+  let colorIdx = 0;
+  const warn = [];
+
+  // Dimensions (what gets "separated" → one line per value)
+  const yearDim = [...F.year.sel];
+  const sexoDim = isSep('Sexo') ? [...F.sexo.sel] : [null];
+  const r2Dim   = isSep('R2')   ? [...F.r2.sel]   : [null];
+  const r1Dim   = isSep('R1') && F.r1.sel.size > 0 ? [...F.r1.sel] : [null];
+
+  // Constraints (when not separating but specific selection)
+  const cSexo = !isSep('Sexo') && F.sexo.sel.size === 1 ? [...F.sexo.sel][0] : null;
+  const cR2   = !isSep('R2')   && F.r2.sel.size === 1   ? [...F.r2.sel][0]   : null;
+  const cR1   = !isSep('R1')   && F.r1.sel.size === 1   ? [...F.r1.sel][0]   : null;
+
+  for (const yr of yearDim) {
+    for (const sx of sexoDim) {
+      for (const r2 of r2Dim) {
+        for (const r1 of r1Dim) {
+          const useSx = sx || cSexo;
+          const useR2 = r2 || cR2;
+          const useR1 = r1 || cR1;
+
+          const key = buildKey(useSx, useR1, useR2);
+          const data = PRECOMP[yr]?.[key];
+
+          if (!data || data.points.length === 0) {
+            if (useR1 && (useSx || useR2)) warn.push(`${yr} ${key} (combinación no disponible)`);
+            continue;
+          }
+
+          const parts = [];
+          if (isSep('Year') || yearDim.length > 1) parts.push(yr);
+          if (sx) parts.push(sx); else if (cSexo) parts.push(cSexo);
+          if (r1) parts.push(r1); else if (cR1) parts.push(cR1);
+          if (r2) parts.push(r2); else if (cR2) parts.push(cR2);
+
+          const label = parts.join(' · ') || yr;
+
+          // Color: use year color if year is only split dim, else palette
+          const onlyYearSplit = !isSep('Sexo') && !isSep('R2') && !isSep('R1');
+          const color = onlyYearSplit ? YR_COLORS[yr] : PALETTE[colorIdx % PALETTE.length];
+          colorIdx++;
+
+          lines.push({ label, year: yr, color, data });
+          if (lines.length >= MAX_LINES) break;
+        }
+        if (lines.length >= MAX_LINES) break;
+      }
+      if (lines.length >= MAX_LINES) break;
+    }
+    if (lines.length >= MAX_LINES) break;
+  }
+
+  // Show warnings
+  const wEl = document.getElementById('warn');
+  if (warn.length) {
+    wEl.style.display = 'block';
+    wEl.textContent = 'Sin datos para: ' + warn.join(', ') + '. Combinaciones de Rodeo 1 + Sexo/Categoría no están precomputadas.';
+  } else { wEl.style.display = 'none'; }
+
+  return lines;
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────────
+let chart = null;
+
+function buildDatasets(lines) {
+  const ds = [];
+  const nLines = lines.length;
+
+  // GDP bar datasets first (drawn behind lines)
+  if (showGdp) {
+    lines.forEach((line, li) => {
+      const pts = line.data.points;
+      // Bar at endpoint of each period, with small x-offset to separate lines
+      const offset = nLines > 1 ? (li - (nLines-1)/2) * 3 : 0;
+      const barData = [];
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[i-1], p1 = pts[i];
+        const days = p1.day - p0.day;
+        const gdp = days > 0 ? (p1.peso - p0.peso) / days : 0;
+        barData.push({ x: p1.day + offset, y: gdp,
+          meta: { label: `${p0.label}→${p1.label}`, dias: days, gdp, linelabel: line.label } });
+      }
+      ds.push({
+        type: 'bar',
+        label: `GDP ${line.label}`,
+        data: barData,
+        backgroundColor: hexAlpha(line.color, 0.5),
+        borderColor: line.color,
+        borderWidth: 1,
+        borderRadius: 3,
+        barThickness: Math.max(8, 28 - nLines * 4),
+        yAxisID: 'y2',
+        order: 10,
+        _isGdp: true,
+        _line: line,
+      });
+    });
+  }
+
+  // Weight lines on top
+  lines.forEach(line => {
+    ds.push({
+      type: 'line',
+      label: line.label,
+      data: line.data.points.map(p => ({x: p.day, y: p.peso, meta: p})),
+      borderColor: line.color,
+      backgroundColor: line.color.replace('rgb','rgba').replace(')',',0.06)'),
+      borderWidth: line.year === '2026' ? 2.5 : 2,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      pointBackgroundColor: line.color,
+      pointBorderColor: '#0d1117',
+      pointBorderWidth: 2,
+      tension: 0.25,
+      fill: false,
+      yAxisID: 'y',
+      order: 1,
+      _line: line,
+    });
+  });
+
+  return ds;
+}
+
+function getYBounds(lines) {
+  let mn=9999,mx=0;
+  lines.forEach(l => l.data.points.forEach(p => {mn=Math.min(mn,p.peso);mx=Math.max(mx,p.peso)}));
+  if(mn===9999) return [100,400];
+  return [Math.floor((mn-30)/20)*20, Math.ceil((mx+40)/20)*20];
+}
+
+function initChart(lines) {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  const [yMin,yMax] = getYBounds(lines);
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: buildDatasets(lines) },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      animation:{duration:250},
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#1f2937',borderColor:'#374151',borderWidth:1,
+          titleColor:'#f9fafb',bodyColor:'#d1d5db',padding:12,
+          filter(item){ return !item.dataset._isGdp; }, // only show weight lines in shared tooltip
+          callbacks:{
+            title(items){
+              const first = items.find(i => i.raw?.meta?.label);
+              if (first) return first.raw.meta.label;
+              const d = items[0]?.parsed?.x;
+              const m = [...MONTHS].reverse().find(m => d >= m.d);
+              return m ? m.l : `Día ${d}`;
+            },
+            label(item){
+              if (item.dataset._isGdp) {
+                const meta = item.raw?.meta;
+                return `  GDP ${meta?.linelabel||''}: ${item.parsed.y.toFixed(3)} kg/día (${meta?.dias||'?'}d)`;
+              }
+              const meta=item.raw?.meta;
+              const n = meta?.n ? ` · n=${meta.n.toLocaleString()}` : '';
+              return `  ${item.dataset.label}: ${item.parsed.y.toFixed(1)} kg${n}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          type:'linear',min:40,max:300,
+          grid:{color:'rgba(255,255,255,0.04)'},
+          border:{color:'#21283a'},
+          ticks:{color:'#6b7280',font:{size:11},maxRotation:0,
+            callback(v){const m=MONTHS.find(m=>m.d===v);return m?m.l:''},
+          },
+          afterBuildTicks(ax){ax.ticks=MONTHS.filter(m=>m.d>=40&&m.d<=300).map(m=>({value:m.d}))}
+        },
+        y:{
+          position:'left',min:yMin,max:yMax,
+          grid:{color:'rgba(255,255,255,0.05)'},
+          border:{color:'#21283a'},
+          ticks:{color:'#6b7280',font:{size:11},callback:v=>v+' kg'}
+        },
+        y2:{
+          position:'right',min:0,max:1.8,
+          display: showGdp,
+          grid:{display:false},
+          border:{color:'#21283a'},
+          ticks:{color:'#4b5563',font:{size:10},stepSize:0.3,callback:v=>v.toFixed(1)+' kg/d'}
+        }
+      }
+    }
+  });
+}
+
+function updateChart(lines) {
+  const [yMin,yMax] = getYBounds(lines);
+  chart.data.datasets = buildDatasets(lines);
+  chart.options.scales.y.min = yMin;
+  chart.options.scales.y.max = yMax;
+  chart.options.scales.y2.display = showGdp;
+  chart.update('active');
+}
+
+// ── LEGEND + GDP ──────────────────────────────────────────────────────────────
+function renderLegend(lines) {
+  const el = document.getElementById('leg');
+  el.innerHTML = lines.map(l =>
+    `<div class="li"><div class="ll" style="background:${l.color}"></div><span>${l.label}</span></div>`
+  ).join('');
+  document.getElementById('chipLines').textContent = `${lines.length} línea${lines.length!==1?'s':''} activa${lines.length!==1?'s':''}`;
+}
+
+function renderGdp(lines) {
+  const grid = document.getElementById('gdpGrid');
+  const maxG = 1.5;
+  grid.innerHTML = '';
+  lines.forEach(line => {
+    line.data.bars.forEach(b => {
+      const pct = Math.max(0,Math.min(100,(b.gdp/maxG)*100));
+      const col = b.gdp<0.2?'#ef4444':b.gdp<0.5?'#fbbf24':'#34d399';
+      grid.innerHTML += `<div class="gr">
+        <span class="gl" style="color:${line.color}">${line.label.split(' · ')[0]} ${b.label}</span>
+        <div class="gbar"><div class="gbf" style="width:${pct}%;background:${col}"></div></div>
+        <span class="gv" style="color:${col}">${b.gdp>=0?b.gdp.toFixed(3):'—'}</span>
+        <span class="gd">${b.dias}d</span>
+      </div>`;
+    });
+  });
+}
+
+// ── RODEO 1 DYNAMIC BUTTONS ───────────────────────────────────────────────────
+function updateR1Buttons() {
+  const selYears = [...F.year.sel];
+  const r1s = new Set();
+  selYears.forEach(yr => (R1_BY_YEAR[yr]||[]).forEach(r => r1s.add(r)));
+  F.r1.all = [...r1s];
+  // Remove r1 selections no longer valid
+  F.r1.sel.forEach(v => { if(!r1s.has(v)) F.r1.sel.delete(v); });
+
+  const br = document.getElementById('brR1');
+  const isAll = F.r1.sel.size === 0;
+  br.innerHTML = `<button class="btn ${isAll?'sel':''}" data-dim="r1" data-val="__ALL__" onclick="toggleAll('r1',this)">Todos</button>`;
+  [...r1s].forEach(r => {
+    const on = F.r1.sel.has(r);
+    br.innerHTML += `<button class="btn ${on?'on':''}" data-dim="r1" data-val="${r}" onclick="toggleBtn('r1','${r}',this)">${r}</button>`;
+  });
+}
+
+// ── FILTER INTERACTIONS ───────────────────────────────────────────────────────
+function toggleAll(dim, btn) {
+  F[dim].sel = new Set(F[dim].all);
+  // Mark all individual btns as on, todos as sel
+  document.querySelectorAll(`[data-dim="${dim}"]`).forEach(b => {
+    if(b.dataset.val==='__ALL__') b.classList.add('sel');
+    else b.classList.add('on');
+  });
+  if(dim==='year') updateR1Buttons();
+  render();
+}
+
+function toggleBtn(dim, val, btn) {
+  if(F[dim].sel.has(val)) {
+    if(F[dim].sel.size>1) { F[dim].sel.delete(val); btn.classList.remove('on'); }
+  } else {
+    F[dim].sel.add(val);
+    btn.classList.add('on');
+  }
+  // Update Todos button
+  const allBtn = document.querySelector(`[data-dim="${dim}"][data-val="__ALL__"]`);
+  const isAll = F[dim].all.every(v => F[dim].sel.has(v));
+  if(allBtn) allBtn.classList.toggle('sel', isAll);
+  if(dim==='year') updateR1Buttons();
+  render();
+}
+
+// ── KPI 2026 ──────────────────────────────────────────────────────────────────
+function get2026Key() {
+  // Build lookup key for 2026 based on current sexo/r2 constraints (not separar)
+  const cSexo = !isSep('Sexo') && F.sexo.sel.size === 1 ? [...F.sexo.sel][0] : null;
+  const cR2   = !isSep('R2')   && F.r2.sel.size === 1   ? [...F.r2.sel][0]   : null;
+  return buildKey(cSexo, null, cR2);
+}
+
+function renderKpi() {
+  const strip = document.getElementById('kpiStrip');
+  const key = get2026Key();
+  const d = PRECOMP['2026']?.[key] || PRECOMP['2026']?.['__ALL__'];
+  if (!d || !d.points.length) { strip.innerHTML = ''; return; }
+
+  const pts = d.points;
+  const last = pts[pts.length - 1];
+  const first = pts[0];
+  const totalDays = last.day - first.day;
+  const gdpAcum = totalDays > 0 ? (last.peso - first.peso) / totalDays : 0;
+
+  // Last period GDP
+  const lastBar = d.bars[d.bars.length - 1];
+  const gdpUlt = lastBar ? lastBar.gdp : null;
+
+  // Context label
+  const cSexo = !isSep('Sexo') && F.sexo.sel.size === 1 ? [...F.sexo.sel][0] : null;
+  const cR2   = !isSep('R2')   && F.r2.sel.size === 1   ? [...F.r2.sel][0]   : null;
+  const ctx = [cSexo, cR2].filter(Boolean).join(' · ') || 'Todos';
+
+  strip.innerHTML = `
+    <div class="kpi">
+      <span class="kpi-lbl">Último peso — 2026</span>
+      <span class="kpi-val">${last.peso.toFixed(0)} <span style="font-size:14px;font-weight:400">kg</span></span>
+      <span class="kpi-sub">${last.label} · ${ctx}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-lbl">Animales</span>
+      <span class="kpi-val">${last.n.toLocaleString()}</span>
+      <span class="kpi-sub">con dato en ${last.label}</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-lbl">Último GDP registrado</span>
+      <span class="kpi-val" style="color:${gdpUlt>=0.5?'#34d399':gdpUlt>=0.2?'#fbbf24':'#ef4444'}">${gdpUlt!=null?gdpUlt.toFixed(3):'—'} <span style="font-size:14px;font-weight:400">kg/d</span></span>
+      <span class="kpi-sub">${lastBar ? lastBar.label : ''} (${lastBar?.dias||'?'} días)</span>
+    </div>
+    <div class="kpi">
+      <span class="kpi-lbl">GDP acumulado</span>
+      <span class="kpi-val" style="color:#a78bfa">${gdpAcum.toFixed(3)} <span style="font-size:14px;font-weight:400">kg/d</span></span>
+      <span class="kpi-sub">${first.label} → ${last.label} (${totalDays} días)</span>
+    </div>`;
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function render() {
+  const lines = getLines();
+  if(!chart) { initChart(lines); }
+  else { updateChart(lines); }
+  renderLegend(lines);
+  renderGdp(lines);
+  renderKpi();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+updateR1Buttons();
+render();
+</script>
+</body>
+</html>
+
