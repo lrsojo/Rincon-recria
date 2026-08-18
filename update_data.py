@@ -99,16 +99,23 @@ def fetch_sheet(url, year):
 def process_sheet(csv_text, year):
     reader = csv.DictReader(io.StringIO(csv_text))
     rows = []
+    total = 0
+    sample_dates = []
     for row in reader:
         sexo = row.get('SEXO','').strip()
         if sexo not in ('Macho','Hembra'): continue
-        d = parse_date(row.get('DESTETE FECHA 1',''))
+        total += 1
+        dest_raw = row.get('DESTETE FECHA 1','').strip()
+        if len(sample_dates) < 3: sample_dates.append(dest_raw)
+        d = parse_date(dest_raw)
         if not d or d.year != int(year): continue
         p = to_num(row.get('DESTETE PESO 1',''))
         if not p or p <= 60: continue
         row['_r2'] = R2_NORM.get(row.get('Rodeo 2',''), None)
         row['_r1'] = row.get('Rodeo 1','').strip()
         rows.append(row)
+    print(f"    Total filas Macho/Hembra: {total}, pasaron filtro año {year}: {len(rows)}")
+    print(f"    Muestra fechas destete: {sample_dates}")
     return rows
 
 def build_precomp(rows, year):
