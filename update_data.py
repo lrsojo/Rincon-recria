@@ -165,7 +165,7 @@ with open(html_file, 'r', encoding='utf-8') as f:
 # Replace PRECOMP data between markers
 html = re.sub(
     r'// ##DATA_START##.*?// ##DATA_END##',
-    f'// ##DATA_START##\nconst PRECOMP={precomp_json};\nconst R1_BY_YEAR={r1_json};\nconst LAST_UPDATE="{now}";\n// ##DATA_END##',
+    f'// ##DATA_START##\nconst PRECOMP={precomp_json};\nconst R1_BY_YEAR_INIT={r1_json};\nconst LAST_UPDATE="{now}";\n// ##DATA_END##',
     html, flags=re.DOTALL
 )
 
