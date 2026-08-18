@@ -42,8 +42,6 @@ def day_of_year(d):
 
 def day_to_label(day):
     months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-    d = datetime(2025, 1, 1) + __import__('timedelta', fromlist=['timedelta'])
-    # simple approach
     import datetime as dt
     base = dt.date(2025, 1, 1) + dt.timedelta(days=day-1)
     return f"{base.day:02d}-{months[base.month-1]}"
@@ -163,9 +161,10 @@ with open(html_file, 'r', encoding='utf-8') as f:
     html = f.read()
 
 # Replace PRECOMP data between markers
+replacement = f'// ##DATA_START##\nconst PRECOMP={precomp_json};\nconst R1_BY_YEAR_INIT={r1_json};\nconst LAST_UPDATE="{now}";\n// ##DATA_END##'
 html = re.sub(
     r'// ##DATA_START##.*?// ##DATA_END##',
-    f'// ##DATA_START##\nconst PRECOMP={precomp_json};\nconst R1_BY_YEAR_INIT={r1_json};\nconst LAST_UPDATE="{now}";\n// ##DATA_END##',
+    lambda m: replacement,
     html, flags=re.DOTALL
 )
 
