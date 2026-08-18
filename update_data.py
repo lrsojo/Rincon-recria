@@ -10,10 +10,10 @@ from collections import defaultdict
 
 # ── URLS DE GOOGLE SHEETS (publicados como CSV) ───────────────────────────────
 SHEETS = {
-    '2023': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vScV-vZEvvwh_gI_ztF2vR9hukUTgHIgXEAtK0Ub6CYctO0I-1f8dgP4F0p9IM5JySYhhiJCauqTOtW/pub?gid=1353830390&single=true&output=csv',
-    '2024': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTu1fl5fuFXxbo9Wtkb-a-yOmqojs9P3CUFxClZVed6iZ7dh-LZVLsvNpiCbXkDXB6UeHTEKb-6HTUq/pub?output=csv',
-    '2025': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vST2aXurt0cjEBvVkNu37XnRoRbcwc0EGidMBWrK57PzrAhZEKeoznE63TwEENJhsvPBZRN35CpmR1i/pub?gid=1353830390&single=true&output=csv',
     '2026': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSk2RcOleSKx7VZLyuS3z061ZkHn6eexA1EHvzRTNttFelCjKo9lk_KANBrvpfGp8y_v7q3S3s7TfpA/pub?gid=1353830390&single=true&output=csv',
+    '2025': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vST2aXurt0cjEBvVkNu37XnRoRbcwc0EGidMBWrK57PzrAhZEKeoznE63TwEENJhsvPBZRN35CpmR1i/pub?gid=1353830390&single=true&output=csv',
+    '2024': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTu1fl5fuFXxbo9Wtkb-a-yOmqojs9P3CUFxClZVed6iZ7dh-LZVLsvNpiCbXkDXB6UeHTEKb-6HTUq/pub?output=csv',
+    '2023': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vScV-vZEvvwh_gI_ztF2vR9hukUTgHIgXEAtK0Ub6CYctO0I-1f8dgP4F0p9IM5JySYhhiJCauqTOtW/pub?gid=1353830390&single=true&output=csv',
 }
 
 PESO_COLS = ['DESTETE PESO 1','PESADA 1 PESO','PESADA 2 PESO','PESADA 3 PESO','PESADA 4 PESO','PESADA 5 PESO']
